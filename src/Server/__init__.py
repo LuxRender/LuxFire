@@ -137,7 +137,7 @@ class Server(ServerObject):
             from Renderer import Renderer
             debug = True #self.debug and self.config.getboolean('CommsManager', 'debug')
             r = Renderer(debug=debug)
-            self.new_server_thread(r, ':Lux.Renderer-%i'%id(r))
+            self.new_server_thread(r, ':Lux.Renderer-%08x'%id(r))
         
         
         

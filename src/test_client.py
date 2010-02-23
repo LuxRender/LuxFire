@@ -16,8 +16,15 @@ def list_luxfire_components():
         return LuxSlaves
     except Pyro.errors.NamingError, err:
         print('Lux Pyro NS group not found - No LuxFire components are running ?')
+        return []
         
 
 if __name__ == '__main__':
-    LuxSlaves = list_luxfire_components()
-    l = ServerLocator.get_by_name(':Lux.%s' % LuxSlaves.pop()[0])
+    LuxSlavesNames = list_luxfire_components()
+    
+    if len(LuxSlavesNames) > 0:
+        slaves = []
+        for LN, i in LuxSlavesNames:
+            slaves.append(ServerLocator.get_by_name(':Lux.%s' % LN))
+    else:
+        print('No slaves available')
