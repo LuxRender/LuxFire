@@ -6,7 +6,7 @@ Created on 23 Feb 2010
 import Pyro.errors
 
 
-from Client import ServerLocator
+from Client import ServerLocator, RemoteLuxWrapper
 
 
 def list_luxfire_components():
@@ -25,6 +25,7 @@ if __name__ == '__main__':
     if len(LuxSlavesNames) > 0:
         slaves = []
         for LN, i in LuxSlavesNames:
-            slaves.append(ServerLocator.get_by_name(':Lux.%s' % LN))
+            if LN.startswith('Renderer'):
+                slaves.append( RemoteLuxWrapper(ServerLocator.get_by_name(':Lux.%s' % LN)) )
     else:
-        print('No slaves available')
+        print('No remote Lux components available')

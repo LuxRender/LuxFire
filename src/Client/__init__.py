@@ -40,3 +40,21 @@ class ServerLocator(object):
             return self.ns.list(group)
 
 ServerLocator = ServerLocator()
+
+class RemoteCallable(object):
+    remote_method   = None
+    def __init__(self, RemoteRenderer, remote_method):
+        self.RemoteRenderer = RemoteRenderer
+        self.remote_method = remote_method
+    
+    def __call__(self, *a, **k):
+        return self.RemoteRenderer.luxcall(self.remote_method, *a, **k)
+
+class RemoteLuxWrapper(object):
+    RemoteMethod = None
+    
+    def __init__(self, RemoteRenderer):
+        self.RemoteRenderer = RemoteRenderer
+        
+    def __getattr__(self, m):
+        return RemoteCallable(self.RemoteRenderer, m)
