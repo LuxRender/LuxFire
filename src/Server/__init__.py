@@ -1,4 +1,36 @@
+# -*- coding: utf8 -*-
+#
+# ***** BEGIN GPL LICENSE BLOCK *****
+#
+# --------------------------------------------------------------------------
+# LuxFire Distributed Rendering System
+# --------------------------------------------------------------------------
+#
+# Authors:
+# Doug Hammond
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <http://www.gnu.org/licenses/>.
+#
+# ***** END GPL LICENCE BLOCK *****
+#
+
+#------------------------------------------------------------------------------ 
+# System imports
 import threading
+#------------------------------------------------------------------------------ 
+
+
 class ServerObject(object):
     '''
     Base Class for all Server Processes. Provides:
@@ -8,14 +40,36 @@ class ServerObject(object):
     def log(str)              - Shortcut for self.dbo(str, True)
     '''
     
-    # class var
+#===============================================================================
+#   CLASS - STATIC - ATTRIBUTES
+#===============================================================================
+    
     print_lock = threading.Lock()
     
+#===============================================================================
+#   ATTRIBUTES
+#===============================================================================
+    
     debug = False
+    _pingval = 0
+    
+#===============================================================================
+#   INITIALISATION
+#===============================================================================
+
+    def __init__(self, debug=False):
+        '''
+        Constructor
+        '''
+        self.SetDebug(debug)
+    
+#================================================================================
+#   METHODS
+#================================================================================
+    
     def SetDebug(self, debug):
         self.debug = bool(debug)
         
-    _pingval = 0
     def Ping(self):
         self._pingval+=1
         return self._pingval
@@ -27,35 +81,42 @@ class ServerObject(object):
         
     def log(self, str):
         self.dbo(str, True)
+#================================================================================
+#   END
+#================================================================================
 
-    def __init__(self, debug=False):
-        '''
-        Constructor
-        '''
-        self.SetDebug(debug)
-        
+
 class ServerThread(threading.Thread, ServerObject):
     '''
     Pyro service thread
     
-    All services are started in :PyCS Pyro NS group
+    All services are started in :Lux Pyro NS group
     'service' should be instance of class to serve
     'name' is service name to register with Pyro NS
     '''
     
+#===============================================================================
+#   ATTRIBUTES
+#===============================================================================
+
     service     = None
     name        = None
     so          = None
     daemon      = None
+    
+#================================================================================
+#   METHODS
+#================================================================================
+    
+    def __repr__(self):
+        return '<ServerThread %s>' % self.name
+    
     def setup(self, service, name):
         self.service = service
         self.name = name
         import Pyro.core
         self.so=Pyro.core.ObjBase()
         self.so.delegateTo(service)
-    
-    def __repr__(self):
-        return '<ServerThread %s>' % self.name
     
     def run(self):
         import Pyro.naming
@@ -88,12 +149,22 @@ class ServerThread(threading.Thread, ServerObject):
             del locator
         
         self.log('Stopped')
-        
-class Server(ServerObject):
+#================================================================================
+#    END
+#================================================================================
+
     
+class Server(ServerObject):
+    '''
+    The actual main server process that starts and stops all other services
+    configured to run in this instance
+    '''
+    
+#===============================================================================
+#   ATTRIBUTES
+#===============================================================================
+
     r_id = None
-    def __repr__(self):
-        return '<Server %s~%s>' % (self.bind, self.r_id)
     
     # CLI_Args object containing.... CLI args
     args = None
@@ -110,6 +181,10 @@ class Server(ServerObject):
     # Local hostname or IP addr to use for Pyro services
     bind = None
     
+#================================================================================
+#   INITIALISATION
+#================================================================================
+    
     def __init__(self, args, config, debug=False):
         self.SetDebug(debug)
         self.args = args
@@ -117,6 +192,13 @@ class Server(ServerObject):
         
         import random
         self.r_id = '%05x' % (random.random()*9999)
+    
+    def __repr__(self):
+        return '<Server %s~%s>' % (self.bind, self.r_id)
+    
+#================================================================================
+#   METHODS
+#================================================================================
     
     def new_server_thread(self, service, name):
         st = ServerThread()
@@ -133,12 +215,15 @@ class Server(ServerObject):
         self.log('Server starting...')
         
         
-        if True: #self.config.getboolean('CommsManager', 'start'):
-            from Renderer import Renderer
-            debug = True #self.debug and self.config.getboolean('CommsManager', 'debug')
-            r = Renderer(debug=debug)
+        #===============================================================================
+        #       ACTUAL SERVER OBJECT INSTATIATION HAPPENS HERE
+        #===============================================================================
+        if True: #self.config.getboolean('RenderServer', 'start'):
+            from Renderer import RendererServer
+            debug = True #self.debug and self.config.getboolean('RenderServer', 'debug')
+            r = RendererServer(debug=debug)
             self.new_server_thread(r, ':Lux.Renderer-%08x'%id(r))
-        
+        #------------------------------------------------------------------------------ 
         
         
         try:
@@ -159,8 +244,12 @@ class Server(ServerObject):
             for serv, thread in thread_list:
                 thread.daemon.shutdown(True)
                 
-            import time
-            time.sleep(2)
+            #import time
+            #time.sleep(2)
             for serv, thread in thread_list:
                 thread.join()
             self.log('...finished')
+    
+#===============================================================================
+#   END
+#===============================================================================
