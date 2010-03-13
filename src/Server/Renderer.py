@@ -75,12 +75,12 @@ class RendererServer(ServerObject):
 #   SERVER STARTUP AND SHUTDOWN
 #================================================================================
     
-    def __init__(self, debug, maxthreads = 0):
+    def __init__(self, debug, name='', maxthreads = 0):
         '''
         Set up this server for debug mode and maxthreads limit, then
         create a Context and ask it what methods it has.
         '''
-        self.SetDebug(debug)
+        ServerObject.__init__(self, debug=debug, name=':Lux.Renderer.%08x'%id(self)) 
         
         self.maxthreads = maxthreads
         self.context_id = '%x' % id(self) # hex address of self
@@ -102,6 +102,14 @@ class RendererServer(ServerObject):
         '''
         return self.context_methods
     
+    
+#===============================================================================
+#   PYRO EVENTS 
+#===============================================================================
+    
+    def PublishThreadChange(self):
+        self.publish('Renderer', ('ThreadsChange', self.name, self.threadcount))
+    
 #===============================================================================
 #   SERVER IMPOSED CONTEXT LIMITS
 #===============================================================================
@@ -113,20 +121,24 @@ class RendererServer(ServerObject):
         If maxthreads limit is in effect, then decrease our internal
         thread count
         '''
-        if self.maxthreads > 0 and self.threadcount > 0:
+        if self.threadcount > 1:    # do not remove the last thread, will have trouble restarting
             self.threadcount -= 1
+            self.PublishThreadChange()
+            return True
+        else:
+            return False
             
     def increase_threads(self):
         '''
         If maxthreads limit is in effect, check that the limit has not
         been reached. If it has, return False otherwise return True
         '''
-        if self.maxthreads > 0:
-            if self.threadcount == self.maxthreads:
+        if self.maxthreads > 0 and self.threadcount == self.maxthreads:
                 return False
-            else:
-                self.threadcount += 1
-                return True
+        
+        self.threadcount += 1
+        self.PublishThreadChange()
+        return True
     
 #================================================================================
 #   CONTEXT INVOCATION
@@ -140,7 +152,8 @@ class RendererServer(ServerObject):
         '''
         
         f = getattr(self.lux_context, m)
-        if m == 'removeThread': self.decrease_threads()
+        if m == 'removeThread' and not self.decrease_threads():
+            return False
         if m == 'addThread' and not self.increase_threads():
             return False
         return f(*a, **k)

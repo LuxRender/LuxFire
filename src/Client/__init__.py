@@ -87,6 +87,21 @@ class ServerLocator(object):
 #   END
 #===============================================================================
 
-
 # Turn the class definition into a global instance
 ServerLocator = ServerLocator()
+
+
+#===============================================================================
+# 
+#===============================================================================
+import Pyro.errors
+
+from Client import ServerLocator
+
+def ListLuxFireGroup(grp='Renderer'):
+    try:
+        LuxSlaves = ServerLocator.get_list(':Lux.%s'%grp)
+        return LuxSlaves
+    except Pyro.errors.NamingError, err:
+        print('Lux Pyro NS group "%s" not found - No LuxFire components are running ?'%grp)
+        return []

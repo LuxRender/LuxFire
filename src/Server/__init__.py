@@ -30,8 +30,12 @@
 import threading
 #------------------------------------------------------------------------------ 
 
+#------------------------------------------------------------------------------ 
+# Non-System imports
+import Pyro.EventService.Clients
+#------------------------------------------------------------------------------ 
 
-class ServerObject(object):
+class ServerObject(Pyro.EventService.Clients.Publisher):
     '''
     Base Class for all Server Processes. Provides:
     def SetDebug(bool)        - Change debug on/off
@@ -52,20 +56,27 @@ class ServerObject(object):
     
     debug = False
     _pingval = 0
+    name = ''
     
 #===============================================================================
 #   INITIALISATION
 #===============================================================================
 
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, name=''):
         '''
         Constructor
         '''
+        Pyro.EventService.Clients.Publisher.__init__(self)
+        
         self.SetDebug(debug)
+        self.SetName(name)
     
 #================================================================================
 #   METHODS
 #================================================================================
+    
+    def SetName(self, name):
+        self.name = name
     
     def SetDebug(self, debug):
         self.debug = bool(debug)
@@ -84,7 +95,6 @@ class ServerObject(object):
 #================================================================================
 #   END
 #================================================================================
-
 
 class ServerThread(threading.Thread, ServerObject):
     '''
@@ -124,6 +134,7 @@ class ServerThread(threading.Thread, ServerObject):
         ns = locator.getNS()
         try:
             ns.createGroup(':Lux')
+            ns.createGroup(':Lux.Renderer')
         except: pass
         self.daemon = Pyro.core.Daemon()
         self.daemon.useNameServer(ns)
@@ -208,9 +219,9 @@ class Server(ServerObject):
     
     def start(self):
         # First set up bind address
-        #import Pyro
+        import Pyro
         #self.bind = self.config.get('server','bind')
-        #Pyro.config.PYRO_HOST = self.bind
+        Pyro.config.PYRO_HOST = '192.168.0.164' #self.bind
         
         self.log('Server starting...')
         
@@ -222,7 +233,7 @@ class Server(ServerObject):
             from Renderer import RendererServer
             debug = True #self.debug and self.config.getboolean('RenderServer', 'debug')
             r = RendererServer(debug=debug)
-            self.new_server_thread(r, ':Lux.Renderer-%08x'%id(r))
+            self.new_server_thread(r, r.name)
         #------------------------------------------------------------------------------ 
         
         
