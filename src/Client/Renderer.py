@@ -119,8 +119,10 @@ class RendererClient(object):
         
         if m in self.RemoteContextMethods:
             return RemoteCallable(self.RemoteRenderer, m)
-        else:
+        elif not m.startswith('_'):
             return getattr(self.RemoteRenderer, m)
+        else:
+            raise AttributeError('Cannot access remote private members')
     
 #===============================================================================
 #   END

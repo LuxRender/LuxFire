@@ -147,11 +147,11 @@ class ServerThread(threading.Thread, ServerObject):
             except:
                 self.log('Deleting stale NS entry: %s' % self.name)
                 ns.remove(self.name)
-        self.log('Serving')
+        self.log('Serving LuxRender Context version %s' % self.service.version())
         self.daemon.requestLoop()       # Blocks until stopped externally
         
         try:
-            ns.unregister(self.name)    # For linux
+            ns.remove(self.name)
         except: pass
         finally:
             del self.so

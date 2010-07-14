@@ -62,14 +62,15 @@ class RendererServer(ServerObject):
 #===============================================================================
     
     # The Lux Rendering Context
-    lux_context = None
+    _lux_context = None
     
     # Methods available in Rendering Context
-    context_methods = []
+    _context_id = None
+    _context_methods = []
     
     # Keep a track of rendering context threads
-    maxthreads  = 0
-    threadcount = 1
+    _maxthreads  = 0
+    _threadcount = 1
     
 #================================================================================
 #   SERVER STARTUP AND SHUTDOWN
@@ -82,32 +83,32 @@ class RendererServer(ServerObject):
         '''
         ServerObject.__init__(self, debug=debug, name='Lux.Renderer.%08x'%id(self)) 
         
-        self.maxthreads = maxthreads
-        self.context_id = '%x' % id(self) # hex address of self
-        self.lux_context = pylux.Context( self.context_id )
-        self.context_methods = dir(self.lux_context)
+        self._maxthreads = maxthreads
+        self._context_id = '%x' % id(self) # hex address of self
+        self._lux_context = pylux.Context( self._context_id )
+        self._context_methods = dir(self._lux_context)
         
     def __del__(self):
         '''
         If this server is killed, make sure the Context ends cleanly
         '''
         self.dbo('Lux Context exit/wait/cleanup')
-        self.lux_context.exit()
-        self.lux_context.wait()
-        self.lux_context.cleanup() 
+        self._lux_context.exit()
+        self._lux_context.wait()
+        self._lux_context.cleanup() 
 
     def get_context_methods(self):
         '''
         Return the Context's methods and attributes to the client
         '''
-        return self.context_methods
+        return self._context_methods
     
     
 #===============================================================================
 #   PYRO EVENTS 
 #===============================================================================
     
-    def PublishThreadChange(self):
+    def _PublishThreadChange(self):
         #self.publish('Renderer', ('ThreadsChange', self.name, self.threadcount))
         pass
     
@@ -117,33 +118,36 @@ class RendererServer(ServerObject):
 
     # Control the max number of rendering threads this server may start
 
-    def decrease_threads(self):
+    def _decrease_threads(self):
         '''
         If maxthreads limit is in effect, then decrease our internal
         thread count
         '''
-        if self.threadcount > 1:    # do not remove the last thread, will have trouble restarting
-            self.threadcount -= 1
-            self.PublishThreadChange()
+        if self._threadcount > 1:    # do not remove the last thread, will have trouble restarting
+            self._threadcount -= 1
+            self._PublishThreadChange()
             return True
         else:
             return False
             
-    def increase_threads(self):
+    def _increase_threads(self):
         '''
         If maxthreads limit is in effect, check that the limit has not
         been reached. If it has, return False otherwise return True
         '''
-        if self.maxthreads > 0 and self.threadcount == self.maxthreads:
-                return False
+        if self._maxthreads > 0 and self._threadcount == self._maxthreads:
+            return False
         
-        self.threadcount += 1
-        self.PublishThreadChange()
+        self._threadcount += 1
+        self._PublishThreadChange()
         return True
     
 #================================================================================
 #   CONTEXT INVOCATION
 #================================================================================
+    
+    def version(self):
+        return pylux.version()
     
     def luxcall(self, m, *a, **k):
         '''
@@ -152,19 +156,25 @@ class RendererServer(ServerObject):
         be passed down to the client.
         '''
         
-        f = getattr(self.lux_context, m)
-        if m == 'removeThread' and not self.decrease_threads():
-            return False
-        if m == 'addThread' and not self.increase_threads():
-            return False
-        return f(*a, **k)
+        
+        if m == 'removeThread': return self._decrease_threads()
+        if m == 'addThread': return self._increase_threads()
+        
+        if hasattr(self._lux_context, m):
+            f = getattr(self._lux_context, m)
+            try:
+                return f(*a, **k)
+            except Exception as err:
+                return str(err)
+        else:
+            raise NotImplementedError('Method or attribute not found')
     
 #===============================================================================
 #   CONTEXT STATISTICS
 #===============================================================================
 
     # Which stats to gather from the Context ? ...
-    stats_dict = {
+    _stats_dict = {
         'secElapsed':       0.0,
         'samplesSec':       0.0,
         'samplesTotSec':    0.0,
@@ -180,7 +190,7 @@ class RendererServer(ServerObject):
     }
     
     # ... and how to format them for reading ?
-    stats_format = {
+    _stats_format = {
         'secElapsed':       format_elapsed_time,
         'samplesSec':       lambda x: 'Samples/Sec: %0.2f'%x,
         'samplesTotSec':    lambda x: 'Total Samples/Sec: %0.2f'%x,
@@ -190,30 +200,30 @@ class RendererServer(ServerObject):
     }
     
     # The formatted stats string
-    stats_string = ''
+    _stats_string = ''
     
-    def compute_stats(self):
+    def _compute_stats(self):
         '''
         Gather and format stats from the rendering context
         '''
-        for k in self.stats_dict.keys():
-            self.stats_dict[k] = self.lux_context.statistics(k)
+        for k in self._stats_dict.keys():
+            self._stats_dict[k] = self._lux_context.statistics(k)
         
-        self.stats_string = ' | '.join(['%s'%self.stats_format[k](v) for k,v in self.stats_dict.items()])
+        self._stats_string = ' | '.join(['%s'%self._stats_format[k](v) for k,v in self._stats_dict.items()])
         
     def get_stats_dict(self):
         '''
         Return the raw stats dict to the client 
         '''
-        self.compute_stats()
-        return self.stats_dict
+        self._compute_stats()
+        return self._stats_dict
         
     def get_stats_string(self):
         '''
         Return the formatted stats string to the client
         '''
-        self.compute_stats()
-        return self.stats_string
+        self._compute_stats()
+        return self._stats_string
     
 #===============================================================================
 #   END
