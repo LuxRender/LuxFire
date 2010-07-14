@@ -33,7 +33,7 @@ def RendererGroup():
         from Client.Renderer import RendererClient
         slaves = {}
         for LN, i in LuxSlavesNames:
-            LS = RendererClient(ServerLocator.get_by_name(':Lux.Renderer.%s' % LN))
+            LS = RendererClient(ServerLocator.get_by_name('Lux.Renderer.%s' % LN))
             slaves[LS.name] = LS
         
         return slaves

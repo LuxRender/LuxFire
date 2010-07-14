@@ -80,7 +80,7 @@ class RendererServer(ServerObject):
         Set up this server for debug mode and maxthreads limit, then
         create a Context and ask it what methods it has.
         '''
-        ServerObject.__init__(self, debug=debug, name=':Lux.Renderer.%08x'%id(self)) 
+        ServerObject.__init__(self, debug=debug, name='Lux.Renderer.%08x'%id(self)) 
         
         self.maxthreads = maxthreads
         self.context_id = '%x' % id(self) # hex address of self
@@ -108,7 +108,8 @@ class RendererServer(ServerObject):
 #===============================================================================
     
     def PublishThreadChange(self):
-        self.publish('Renderer', ('ThreadsChange', self.name, self.threadcount))
+        #self.publish('Renderer', ('ThreadsChange', self.name, self.threadcount))
+        pass
     
 #===============================================================================
 #   SERVER IMPOSED CONTEXT LIMITS

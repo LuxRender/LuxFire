@@ -32,10 +32,10 @@ import threading
 
 #------------------------------------------------------------------------------ 
 # Non-System imports
-import Pyro.EventService.Clients
+# import Pyro.EventService.Clients
 #------------------------------------------------------------------------------ 
 
-class ServerObject(Pyro.EventService.Clients.Publisher):
+class ServerObject(object): #Pyro.EventService.Clients.Publisher):
     '''
     Base Class for all Server Processes. Provides:
     def SetDebug(bool)        - Change debug on/off
@@ -66,7 +66,7 @@ class ServerObject(Pyro.EventService.Clients.Publisher):
         '''
         Constructor
         '''
-        Pyro.EventService.Clients.Publisher.__init__(self)
+        #Pyro.EventService.Clients.Publisher.__init__(self)
         
         self.SetDebug(debug)
         self.SetName(name)
@@ -100,7 +100,7 @@ class ServerThread(threading.Thread, ServerObject):
     '''
     Pyro service thread
     
-    All services are started in :Lux Pyro NS group
+    All services are started in Pyro NS with prefix Lux.*
     'service' should be instance of class to serve
     'name' is service name to register with Pyro NS
     '''
@@ -109,9 +109,9 @@ class ServerThread(threading.Thread, ServerObject):
 #   ATTRIBUTES
 #===============================================================================
 
-    service     = None
-    name        = None
-    so          = None
+    service     = None  # Object to Serve (Proxy)
+    name        = None  # Proxy Name
+    so          = None  # Pyro Proxy URI
     daemon      = None
     
 #================================================================================
@@ -125,27 +125,28 @@ class ServerThread(threading.Thread, ServerObject):
         self.service = service
         self.name = name
         import Pyro.core
-        self.so=Pyro.core.ObjBase()
-        self.so.delegateTo(service)
+        self.daemon=Pyro.core.Daemon()
+        self.so=self.daemon.register(service)
     
     def run(self):
         import Pyro.naming
-        locator = Pyro.naming.NameServerLocator()
-        ns = locator.getNS()
-        try:
-            ns.createGroup(':Lux')
-            ns.createGroup(':Lux.Renderer')
-        except: pass
-        self.daemon = Pyro.core.Daemon()
-        self.daemon.useNameServer(ns)
+        ns = Pyro.naming.locateNS()
+        #try:
+        #    ns.createGroup(':Lux')
+        #    ns.createGroup(':Lux.Renderer')
+        #except: pass
+        
+        #self.daemon = Pyro.core.Daemon()
+        #self.daemon.useNameServer(ns)
         created = False
         while not created:
             try:
-                self.daemon.connect(self.so, self.name)
+                #self.daemon.connect(self.so, self.name)
+                ns.register(self.name, self.so)
                 created = True
             except:
                 self.log('Deleting stale NS entry: %s' % self.name)
-                ns.unregister(self.name)
+                ns.remove(self.name)
         self.log('Serving')
         self.daemon.requestLoop()       # Blocks until stopped externally
         
@@ -157,7 +158,6 @@ class ServerThread(threading.Thread, ServerObject):
             del self.service
             del self.daemon
             del ns
-            del locator
         
         self.log('Stopped')
 #================================================================================
@@ -230,7 +230,7 @@ class Server(ServerObject):
         #       ACTUAL SERVER OBJECT INSTATIATION HAPPENS HERE
         #===============================================================================
         if True: #self.config.getboolean('RenderServer', 'start'):
-            from Renderer import RendererServer
+            from Server.Renderer import RendererServer
             debug = True #self.debug and self.config.getboolean('RenderServer', 'debug')
             r = RendererServer(debug=debug)
             self.new_server_thread(r, r.name)
@@ -250,10 +250,10 @@ class Server(ServerObject):
             # first signal shutdowns, and then attempt thread join in reverse order
             # we do this to help prevent exceptions at shutdown time from services
             # calling others that are no longer present
-            thread_list = self.server_threads.items()
+            thread_list = list(self.server_threads.items())
             thread_list.reverse()
             for serv, thread in thread_list:
-                thread.daemon.shutdown(True)
+                thread.daemon.shutdown()
                 
             #import time
             #time.sleep(2)

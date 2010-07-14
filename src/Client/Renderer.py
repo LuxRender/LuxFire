@@ -69,10 +69,10 @@ class RemoteCallable(object):
         
         try:
             return self.RemoteRenderer.luxcall(self.remote_method, *a, **k)
-        except Exception, err:
+        except Exception as err:
             # Get meaningful output from remote exception;
             # Boost.Python exceptions cannot be pickled
-            print ''.join( Pyro.util.getPyroTraceback(err) )
+            print(''.join( Pyro.util.getPyroTraceback(err) ))
 #===============================================================================
 #   END
 #===============================================================================

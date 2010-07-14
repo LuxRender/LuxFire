@@ -57,10 +57,9 @@ class ServerLocator(object):
         
         import Pyro.core
         import Pyro.naming
-        locator = Pyro.naming.NameServerLocator()
         try:
-            self.ns = locator.getNS()
-        except Pyro.errors.NamingError, err:
+            self.ns = Pyro.naming.locateNS()
+        except Pyro.errors.NamingError as err:
             raise ClientException('FATAL ERROR: Cannot find Pyro NameServer')
     
 #================================================================================
@@ -73,8 +72,7 @@ class ServerLocator(object):
         '''
         
         if self.ns is not None:
-            uri = self.ns.resolve(name)
-            return uri.getAttrProxy()
+            return Pyro.core.Proxy( self.ns.lookup(name) )
     
     def get_list(self, group):
         '''
@@ -100,8 +98,8 @@ from Client import ServerLocator
 
 def ListLuxFireGroup(grp='Renderer'):
     try:
-        LuxSlaves = ServerLocator.get_list(':Lux.%s'%grp)
+        LuxSlaves = ServerLocator.get_list('Lux.%s'%grp)
         return LuxSlaves
-    except Pyro.errors.NamingError, err:
-        print('Lux Pyro NS group "%s" not found - No LuxFire components are running ?'%grp)
+    except Pyro.errors.NamingError as err:
+        print('Lux Pyro NS group Lux.%s not found - No LuxFire components are running ?'%grp)
         return []
