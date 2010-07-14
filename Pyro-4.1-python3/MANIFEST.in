@@ -1,0 +1,10 @@
+include LICENSE
+include MANIFEST.in
+recursive-include tests *
+recursive-include examples *
+recursive-include docs *
+global-exclude */.svn/*
+global-exclude *.class
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.coverage
