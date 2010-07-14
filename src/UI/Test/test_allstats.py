@@ -35,7 +35,7 @@ def list_luxfire_components():
         LuxSlaves = ServerLocator.get_list(':Lux')
         #print(LuxSlaves)
         return LuxSlaves
-    except Pyro.errors.NamingError, err:
+    except Pyro.errors.NamingError as err:
         #print('Lux Pyro NS group not found - No LuxFire components are running ?')
         return []
         

@@ -32,7 +32,7 @@ def list_luxfire_components(grp='Renderer'):
     try:
         LuxSlaves = ServerLocator.get_list(':Lux.%s'%grp)
         return LuxSlaves
-    except Pyro.errors.NamingError, err:
+    except Pyro.errors.NamingError as err:
         print('Lux Pyro NS group "%s" not found - No LuxFire components are running ?'%grp)
         return []
         
