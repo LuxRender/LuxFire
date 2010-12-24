@@ -28,15 +28,20 @@ if __name__ == '__main__':
 	import sys
 	try:
 		import sqlalchemy
-		from Dispatcher.Database import Database
-		db = Database.Session()
 	except ImportError as err:
 		print('LuxFire.Dispatcher startup error: %s' % err)
 		sys.exit(-1)
 	
-	# Just importing the Models is enough to cause Table creation
-	# They need to be imported in the correct order to meet
-	# relationship dependencies
+	# Set verbose mode to see table creation
+	import Dispatcher.Database
+	Dispatcher.Database.DATABASE_VERBOSE |= True
+	
+	# Set auto table create
+	Dispatcher.Database.AUTO_TABLE_CREATE |= True
+	
+	# Just importing the Models is enough to cause Table creation when
+	# AUTO_TABLE_CREATE == True. They need to be imported in the correct order
+	# to meet relationship dependencies
 	from Dispatcher.Models.Role import Role
 	from Dispatcher.Models.User import User
 	from Dispatcher.Models.Queue import Queue

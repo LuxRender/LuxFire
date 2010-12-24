@@ -28,7 +28,7 @@ from sqlalchemy import Table, Column, Integer, String, Sequence, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
-from Dispatcher.Database import Database, ModelBase
+from Dispatcher.Database import Database, ModelBase, AUTO_TABLE_CREATE
 
 # Import Role to create table that User + roles_users depends on
 from Dispatcher.Models.Role import Role
@@ -58,4 +58,4 @@ class User(ModelBase):
 	def __repr__(self):
 		return "<User('%s','%s')>" % (self.id, self.email)
 
-ModelBase.metadata.create_all(Database.Instance())
+if AUTO_TABLE_CREATE: ModelBase.metadata.create_all(Database.Instance())

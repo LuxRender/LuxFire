@@ -26,7 +26,7 @@
 #
 from sqlalchemy import Column, Integer, String, Sequence
 
-from Dispatcher.Database import Database, ModelBase
+from Dispatcher.Database import Database, ModelBase, AUTO_TABLE_CREATE
 
 class Role(ModelBase):
 	__tablename__ = 'roles'
@@ -42,4 +42,4 @@ class Role(ModelBase):
 	def __repr__(self):
 		return "<Role('%s')>" % (self.name)
 
-ModelBase.metadata.create_all(Database.Instance())
+if AUTO_TABLE_CREATE: ModelBase.metadata.create_all(Database.Instance())

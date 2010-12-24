@@ -24,11 +24,19 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
-from sqlalchemy import Column, Integer, String, Sequence, Text, ForeignKey
+from sqlalchemy import Column, DateTime, Enum, Integer, String, Sequence, Text, ForeignKey
 from sqlalchemy.orm import relationship, backref
 
-from Dispatcher.Database import Database, ModelBase
+from Dispatcher.Database import Database, ModelBase, AUTO_TABLE_CREATE
 from Dispatcher.Models.User import User
+
+QueueStatuses = [
+	'NEW',
+	'UPLOADING',
+	'READY',
+	'RENDERING',
+	'ERROR'
+]
 
 class Queue(ModelBase):
 	__tablename__ = 'queue'
@@ -38,8 +46,8 @@ class Queue(ModelBase):
 	halttime = Column(Integer(8), default=-1)
 	path = Column(Text(), nullable=False)
 	jobname = Column(String(128), nullable=False)
-	date = Column(Integer(12), nullable=False)
-	status = Column(String(32), nullable=False)
+	date = Column(DateTime(), nullable=False)
+	status = Column(Enum(*QueueStatuses), nullable=False)
 	user_id = Column(Integer(12), ForeignKey('users.id'))
 	
 	user = relationship(User, backref=backref('queue', order_by=id))
@@ -47,4 +55,4 @@ class Queue(ModelBase):
 	def __repr__(self):
 		return "<Queue('%s','%s')>" % (self.user.email, self.jobname)
 
-ModelBase.metadata.create_all(Database.Instance())
+if AUTO_TABLE_CREATE: ModelBase.metadata.create_all(Database.Instance())

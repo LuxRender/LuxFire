@@ -28,6 +28,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+DATABASE_VERBOSE = False
+AUTO_TABLE_CREATE = False
+
 class Database(object):
 	_instance = None
 	_session = None
@@ -36,7 +39,7 @@ class Database(object):
 	def Instance(cls):
 		if cls._instance == None:
 			# TODO: read database configuration from file
-			cls._instance = create_engine('sqlite:///:memory:', echo=True)
+			cls._instance = create_engine('sqlite:///:memory:', echo=DATABASE_VERBOSE)
 			
 		return cls._instance
 	
