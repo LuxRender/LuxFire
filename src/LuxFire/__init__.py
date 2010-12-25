@@ -24,25 +24,36 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
-if __name__ == '__main__':
-	import sys
-	try:
-		import sqlalchemy
-	except ImportError as err:
-		print('LuxFire.Dispatcher startup error: %s' % err)
-		sys.exit(-1)
+import configparser
+
+DefaultConfig = {
+	'Dispatcher': {
+		'database': 'sqlite:///:memory:',	# By default database is temporary in memory!
+		'database_verbose': 'False',
+		'auto_table_create': 'False'
+	}
+}
+
+class LuxFireConfig(configparser.SafeConfigParser):
+	_instance = None
 	
-	# Set verbose mode to see table creation
-	import Dispatcher.Database
-	Dispatcher.Database.DATABASE_VERBOSE |= True
+	filename = 'luxfire.cfg'
 	
-	# Set auto table create
-	Dispatcher.Database.AUTO_TABLE_CREATE |= True
+	@classmethod
+	def Instance(cls):
+		if cls._instance == None:
+			cls._instance = cls()
+			cls._instance.read(cls.filename)
+			# Populate with defaults
+			for k_s, v_s in DefaultConfig.items():
+				if not cls._instance.has_section(k_s):
+					cls._instance.add_section(k_s)
+				for k_i, v_i in v_s.items():
+					if not cls._instance.has_option(k_s, k_i):
+						cls._instance.set(k_s, k_i, v_i)
+		
+		return cls._instance
 	
-	# Just importing the Models is enough to cause Table creation when
-	# AUTO_TABLE_CREATE == True. They need to be imported in the correct order
-	# to meet relationship dependencies
-	from Dispatcher.Models.Role import Role
-	from Dispatcher.Models.User import User
-	from Dispatcher.Models.Queue import Queue
-	from Dispatcher.Models.Result import Result
+	def Save(self):
+		with open(self.filename, 'w') as cf:
+			self.write(cf)

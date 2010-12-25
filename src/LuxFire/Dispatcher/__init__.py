@@ -24,33 +24,7 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
-from sqlalchemy import Column, DateTime, Enum, Integer, String, Sequence, Text, ForeignKey
-from sqlalchemy.orm import relationship, backref
+from LuxRender import LuxLog
 
-from Dispatcher.Database import Database, ModelBase, AUTO_TABLE_CREATE
-from Dispatcher.Models.User import User
-
-ResultStatuses = [
-	'RENDER_COMPLETE',
-	'OFFLINE',
-	'SLAVE_FAILURE',
-	'SCENE_FAILURE',
-	'NO_CREDIT'
-]
-
-class Result(ModelBase):
-	__tablename__ = 'results'
-	
-	id = Column(Integer(12), Sequence('result_id_seq'), primary_key=True)
-	path = Column(Text(), nullable=False)
-	jobname = Column(String(128), nullable=False)
-	date = Column(DateTime(), nullable=False)
-	status = Column(Enum(*ResultStatuses), nullable=False)
-	user_id = Column(Integer(12), ForeignKey('users.id'))
-	
-	user = relationship(User, backref=backref('results', order_by=id))
-	
-	def __repr__(self):
-		return "<Queue('%s','%s')>" % (self.user.email, self.jobname)
-
-if AUTO_TABLE_CREATE: ModelBase.metadata.create_all(Database.Instance())
+def DispatcherLog(message):
+	LuxLog(message, module_name='LuxFire.Dispatcher')

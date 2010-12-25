@@ -24,22 +24,35 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
-from sqlalchemy import Column, Integer, String, Sequence
+from sqlalchemy import Column, DateTime, Enum, Integer, String, Sequence, Text, ForeignKey
+from sqlalchemy.orm import relationship, backref
 
-from Dispatcher.Database import Database, ModelBase, AUTO_TABLE_CREATE
+from ..Database import Database, ModelBase, AUTO_TABLE_CREATE
+from .User import User
 
-class Role(ModelBase):
-	__tablename__ = 'roles'
+QueueStatuses = [
+	'NEW',
+	'UPLOADING',
+	'READY',
+	'RENDERING',
+	'ERROR'
+]
+
+class Queue(ModelBase):
+	__tablename__ = 'queue'
 	
-	id = Column(Integer(12), Sequence('role_id_seq'), primary_key=True)
-	name = Column(String(32))
-	description = Column(String(128))
+	id = Column(Integer(12), Sequence('queue_id_seq'), primary_key=True)
+	haltspp = Column(Integer(8), default=-1)
+	halttime = Column(Integer(8), default=-1)
+	path = Column(Text(), nullable=False)
+	jobname = Column(String(128), nullable=False)
+	date = Column(DateTime(), nullable=False)
+	status = Column(Enum(*QueueStatuses), nullable=False)
+	user_id = Column(Integer(12), ForeignKey('users.id'))
 	
-	def __init__(self, name, description):
-		self.name = name
-		self.description = description
+	user = relationship(User, backref=backref('queue', order_by=id))
 	
 	def __repr__(self):
-		return "<Role('%s')>" % (self.name)
+		return "<Queue('%s','%s')>" % (self.user.email, self.jobname)
 
 if AUTO_TABLE_CREATE: ModelBase.metadata.create_all(Database.Instance())

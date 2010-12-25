@@ -24,3 +24,22 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
+from sqlalchemy import Column, Integer, String, Sequence
+
+from ..Database import Database, ModelBase, AUTO_TABLE_CREATE
+
+class Role(ModelBase):
+	__tablename__ = 'roles'
+	
+	id = Column(Integer(12), Sequence('role_id_seq'), primary_key=True)
+	name = Column(String(32))
+	description = Column(String(128))
+	
+	def __init__(self, name, description):
+		self.name = name
+		self.description = description
+	
+	def __repr__(self):
+		return "<Role('%s')>" % (self.name)
+
+if AUTO_TABLE_CREATE: ModelBase.metadata.create_all(Database.Instance())

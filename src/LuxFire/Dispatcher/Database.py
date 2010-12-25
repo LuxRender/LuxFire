@@ -24,38 +24,35 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
-from sqlalchemy import Table, Column, Integer, String, Sequence, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-from Dispatcher.Database import Database, ModelBase, AUTO_TABLE_CREATE
+from .. import LuxFireConfig
 
-# Import Role to create table that User + roles_users depends on
-from Dispatcher.Models.Role import Role
+DATABASE_VERBOSE = LuxFireConfig.Instance().getboolean('Dispatcher', 'database_verbose')
+AUTO_TABLE_CREATE = LuxFireConfig.Instance().getboolean('Dispatcher', 'auto_table_create')
 
-roles_users = Table(
-	'roles_users',
-	ModelBase.metadata,
-	Column('role_id', Integer(12), ForeignKey('roles.id')),
-	Column('user_id', Integer(12), ForeignKey('users.id'))
-)
+class Database(object):
+	_instance = None
+	_session = None
+	
+	@classmethod
+	def Instance(cls):
+		if cls._instance == None:
+			# TODO: read database configuration from file
+			cls._instance = create_engine(
+				LuxFireConfig.Instance().get('Dispatcher', 'database'),
+				echo=DATABASE_VERBOSE
+			)
+			
+		return cls._instance
+	
+	@classmethod
+	def Session(cls):
+		if cls._session == None:
+			cls._session = sessionmaker(bind=cls.Instance())
+			
+		return cls._session()
 
-class User(ModelBase):
-	__tablename__ = 'users'
-	
-	id = Column(Integer(12), Sequence('user_id_seq'), primary_key=True)
-	email = Column(String(128))
-	password = Column(String(64))
-	credits = Integer(10)
-	
-	roles = relationship('Role', secondary=roles_users, backref='users')
-	
-	def __init__(self, email, password, credits):
-		self.email = email
-		self.password = password
-		self.credits = credits
-	
-	def __repr__(self):
-		return "<User('%s','%s')>" % (self.id, self.email)
-
-if AUTO_TABLE_CREATE: ModelBase.metadata.create_all(Database.Instance())
+ModelBase = declarative_base()

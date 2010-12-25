@@ -24,30 +24,38 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Table, Column, Integer, String, Sequence, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
-DATABASE_VERBOSE = False
-AUTO_TABLE_CREATE = False
+from ..Database import Database, ModelBase, AUTO_TABLE_CREATE
 
-class Database(object):
-	_instance = None
-	_session = None
-	
-	@classmethod
-	def Instance(cls):
-		if cls._instance == None:
-			# TODO: read database configuration from file
-			cls._instance = create_engine('sqlite:///:memory:', echo=DATABASE_VERBOSE)
-			
-		return cls._instance
-	
-	@classmethod
-	def Session(cls):
-		if cls._session == None:
-			cls._session = sessionmaker(bind=cls.Instance())
-			
-		return cls._session()
+# Import Role to create table that User + roles_users depends on
+from .Role import Role
 
-ModelBase = declarative_base()
+roles_users = Table(
+	'roles_users',
+	ModelBase.metadata,
+	Column('role_id', Integer(12), ForeignKey('roles.id')),
+	Column('user_id', Integer(12), ForeignKey('users.id'))
+)
+
+class User(ModelBase):
+	__tablename__ = 'users'
+	
+	id = Column(Integer(12), Sequence('user_id_seq'), primary_key=True)
+	email = Column(String(128))
+	password = Column(String(64))
+	credits = Column(Integer(10))
+	
+	roles = relationship('Role', secondary=roles_users, backref='users')
+	
+	def __init__(self, email, password, credits):
+		self.email = email
+		self.password = password
+		self.credits = credits
+	
+	def __repr__(self):
+		return "<User('%s','%s')>" % (self.id, self.email)
+
+if AUTO_TABLE_CREATE: ModelBase.metadata.create_all(Database.Instance())

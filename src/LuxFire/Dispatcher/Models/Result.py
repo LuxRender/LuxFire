@@ -27,30 +27,28 @@
 from sqlalchemy import Column, DateTime, Enum, Integer, String, Sequence, Text, ForeignKey
 from sqlalchemy.orm import relationship, backref
 
-from Dispatcher.Database import Database, ModelBase, AUTO_TABLE_CREATE
-from Dispatcher.Models.User import User
+from ..Database import Database, ModelBase, AUTO_TABLE_CREATE
+from .User import User
 
-QueueStatuses = [
-	'NEW',
-	'UPLOADING',
-	'READY',
-	'RENDERING',
-	'ERROR'
+ResultStatuses = [
+	'RENDER_COMPLETE',
+	'OFFLINE',
+	'SLAVE_FAILURE',
+	'SCENE_FAILURE',
+	'NO_CREDIT'
 ]
 
-class Queue(ModelBase):
-	__tablename__ = 'queue'
+class Result(ModelBase):
+	__tablename__ = 'results'
 	
-	id = Column(Integer(12), Sequence('queue_id_seq'), primary_key=True)
-	haltspp = Column(Integer(8), default=-1)
-	halttime = Column(Integer(8), default=-1)
+	id = Column(Integer(12), Sequence('result_id_seq'), primary_key=True)
 	path = Column(Text(), nullable=False)
 	jobname = Column(String(128), nullable=False)
 	date = Column(DateTime(), nullable=False)
-	status = Column(Enum(*QueueStatuses), nullable=False)
+	status = Column(Enum(*ResultStatuses), nullable=False)
 	user_id = Column(Integer(12), ForeignKey('users.id'))
 	
-	user = relationship(User, backref=backref('queue', order_by=id))
+	user = relationship(User, backref=backref('results', order_by=id))
 	
 	def __repr__(self):
 		return "<Queue('%s','%s')>" % (self.user.email, self.jobname)

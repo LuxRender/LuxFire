@@ -24,3 +24,10 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
+import time
+
+def LuxLog(str, module_name='Lux'):
+	"""Print a message to the console, prefixed with the module_name
+	and the current time.
+	"""
+	print("[%s %s] %s" % (module_name, time.strftime('%Y-%b-%d %H:%M:%S'), str))

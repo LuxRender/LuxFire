@@ -4,3 +4,7 @@ syntax: regexp
 
 syntax: glob
 *.pyc
+syntax: regexp
+^src/luxfire\.cfg$
+syntax: regexp
+\.sqlite3$
