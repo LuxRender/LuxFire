@@ -73,6 +73,9 @@ class ServerObject(object): #Pyro.EventService.Clients.Publisher):
 	def SetName(self, name):
 		self.name = name
 	
+	def GetName(self):
+		return self.name
+	
 	def SetDebug(self, debug):
 		self.debug = bool(debug)
 		

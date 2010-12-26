@@ -29,6 +29,8 @@ The Client package contains methods and objects useful for local proxies to
 remote Servers.
 """
 
+import Pyro
+
 class ClientException(Exception):
 	'''
 	Exception raised by client objects
@@ -74,8 +76,6 @@ class ServerLocator(object):
 # Turn the class definition into a global instance
 ServerLocator = ServerLocator()
 
-import Pyro.errors
-
 def ListLuxFireGroup(grp='Renderer'):
 	try:
 		LuxSlaves = ServerLocator.get_list('LuxFire.%s'%grp)
@@ -83,3 +83,4 @@ def ListLuxFireGroup(grp='Renderer'):
 	except Pyro.errors.NamingError as err:
 		print('LuxFire Pyro NS group Lux.%s not found - No LuxFire components are running ?'%grp)
 		return []
+

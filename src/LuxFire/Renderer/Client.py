@@ -31,16 +31,18 @@ Renderer.Client is a local proxy for a remote Renderer.Server context.
 # Pyro Imports
 import Pyro
 
+from ..Client import ListLuxFireGroup, ServerLocator
+
 class RemoteCallable(object):
 	'''
 	Function proxy for remote pylux.Context
 	'''
 	
 	# Remote RenderServer object to call
-	RemoteRenderer = None
+	RemoteRenderer	= None
 	
 	# Name of the Context method to call
-	remote_method   = None
+	remote_method	= None
 	
 	def __init__(self, RemoteRenderer, remote_method):
 		'''
@@ -89,25 +91,28 @@ class RendererClient(object):
 		to find the attribute or method in the RendererServer
 		'''
 		
-		if m in self.RemoteContextMethods:
+		if m in self.RemoteContextMethods and m != 'name':
 			return RemoteCallable(self.RemoteRenderer, m)
 		elif not m.startswith('_'):
 			return getattr(self.RemoteRenderer, m)
 		else:
 			raise AttributeError('Cannot access remote private members')
 
-if __name__ == '__main__':
-	from ..Client import ServerLocator, ListLuxFireGroup
-	
-	LuxSlavesNames = ListLuxFireGroup(grp='Renderer')
+def RendererGroup():
+	LuxSlavesNames = ListLuxFireGroup('Renderer')
 	
 	if len(LuxSlavesNames) > 0:
 		slaves = {}
-		for LN, i in LuxSlavesNames.items():
+		for LN in LuxSlavesNames:
 			RS = ServerLocator.get_by_name(LN)
 			LS = RendererClient(RS)
 			slaves[LN] = (LS, RS)
-		print(slaves)
+		
+		return slaves
 	else:
-		print('No remote LuxFire components available')
+		return {}
+
+if __name__ == '__main__':
+	slaves = RendererGroup()
+	print(slaves)
 
