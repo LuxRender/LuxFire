@@ -24,3 +24,6 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
+"""
+The UI package contains the user interfaces used to manage the LuxFire system.
+"""

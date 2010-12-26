@@ -24,6 +24,10 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
+"""
+Dispatcher is a Render Queue/Job manager and dispatcher for Renderer Slaves.
+"""
+
 from LuxRender import LuxLog
 
 def DispatcherLog(message):

@@ -24,17 +24,14 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
-#------------------------------------------------------------------------------ 
+
 # Non-system imports
 import wx
-#------------------------------------------------------------------------------ 
 
-#===============================================================================
-# MasterControllerView - The main MasterController application window (mVc)
-#===============================================================================
 class MasterControllerView(wx.Frame):
-    def __init__(self, parent):
-        wx.Frame.__init__(self, parent, title="LuxFire Master Controller")
-#===============================================================================
-#   END
-#===============================================================================
+	"""
+	The main MasterController application window (mVc)
+	"""
+	
+	def __init__(self, parent):
+		wx.Frame.__init__(self, parent, title="LuxFire Master Controller")

@@ -27,15 +27,15 @@
 from Client import ServerLocator, ListLuxFireGroup
 
 def RendererGroup():
-    LuxSlavesNames = ListLuxFireGroup('Renderer')
-    
-    if len(LuxSlavesNames) > 0:
-        from Client.Renderer import RendererClient
-        slaves = {}
-        for LN, i in LuxSlavesNames:
-            LS = RendererClient(ServerLocator.get_by_name('Lux.Renderer.%s' % LN))
-            slaves[LS.name] = LS
-        
-        return slaves
-    else:
-        return {}
+	LuxSlavesNames = ListLuxFireGroup('Renderer')
+	
+	if len(LuxSlavesNames) > 0:
+		from Client.Renderer import RendererClient
+		slaves = {}
+		for LN, i in LuxSlavesNames:
+			LS = RendererClient(ServerLocator.get_by_name('Lux.Renderer.%s' % LN))
+			slaves[LS.name] = LS
+		
+		return slaves
+	else:
+		return {}

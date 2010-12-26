@@ -24,6 +24,11 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
+"""
+LuxFire is a distributed network rendering and rendering management system for
+LuxRender.
+"""
+
 import configparser
 
 DefaultConfig = {

@@ -26,36 +26,33 @@
 #
 import Pyro.errors
 
-
 from Client import ServerLocator
 
-
 def list_luxfire_components():
-    try:
-        LuxSlaves = ServerLocator.get_list('Lux')
-        #print(LuxSlaves)
-        return LuxSlaves
-    except Pyro.errors.NamingError as err:
-        #print('Lux Pyro NS group not found - No LuxFire components are running ?')
-        return []
-        
+	try:
+		LuxSlaves = ServerLocator.get_list('Lux')
+		#print(LuxSlaves)
+		return LuxSlaves
+	except Pyro.errors.NamingError as err:
+		#print('Lux Pyro NS group not found - No LuxFire components are running ?')
+		return []
+		
 
 if __name__ == '__main__':
-    
-    import time
-    
-    while True:
-    
-        LuxSlavesNames = list_luxfire_components()
-        
-        if len(LuxSlavesNames) > 0:
-            slaves = []
-            print('------------------------------------------------------------------')
-            for LN, i in LuxSlavesNames.items():
-                RemoteRenderer = ServerLocator.get_by_name(LN) 
-                print('%s : %s' % (LN, RemoteRenderer.get_stats_string()))
-        else:
-            print('No remote Lux components available')
-
-
-        time.sleep(5)
+	
+	import time
+	
+	while True:
+	
+		LuxSlavesNames = list_luxfire_components()
+		
+		if len(LuxSlavesNames) > 0:
+			slaves = []
+			print('------------------------------------------------------------------')
+			for LN, i in LuxSlavesNames.items():
+				RemoteRenderer = ServerLocator.get_by_name(LN) 
+				print('%s : %s' % (LN, RemoteRenderer.get_stats_string()))
+		else:
+			print('No remote Lux components available')
+		
+		time.sleep(5)

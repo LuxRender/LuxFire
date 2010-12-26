@@ -24,3 +24,7 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
+"""
+Dispatcher.Models contains the Models for the Dispatcher's database persistent
+data storage.
+"""

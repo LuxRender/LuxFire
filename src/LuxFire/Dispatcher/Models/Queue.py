@@ -24,6 +24,11 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
+"""
+The Queue Model holds data about rendering jobs that are yet to be processed by
+the Dispatcher.
+"""
+
 from sqlalchemy import Column, DateTime, Enum, Integer, String, Sequence, Text, ForeignKey
 from sqlalchemy.orm import relationship, backref
 

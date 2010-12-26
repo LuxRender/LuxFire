@@ -24,3 +24,7 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
+"""
+The Test package contains some test interfaces for proving functionality in
+parts of the LuxFire system.
+"""

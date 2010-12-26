@@ -24,6 +24,11 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
+"""
+The Result Model holds information about rendering jobs that have been processed
+by the Dispatcher.
+"""
+
 from sqlalchemy import Column, DateTime, Enum, Integer, String, Sequence, Text, ForeignKey
 from sqlalchemy.orm import relationship, backref
 

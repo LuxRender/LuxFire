@@ -24,6 +24,11 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
+"""
+Dispatcher.CreateDatabase is responsible for initalising the database necessary
+for Dispatcher to operate.
+"""
+
 if __name__ == '__main__':
 	import sys
 	try:

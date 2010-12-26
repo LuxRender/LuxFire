@@ -24,6 +24,11 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
+"""
+Dispatcher.Database manages the database connection for Dispatcher's persistent
+data storage.
+"""
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base

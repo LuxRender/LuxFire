@@ -24,6 +24,10 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
+"""
+The Role Model is a description of a permission that may be granted to a User.
+"""
+
 from sqlalchemy import Column, Integer, String, Sequence
 
 from ..Database import Database, ModelBase, AUTO_TABLE_CREATE

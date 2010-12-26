@@ -24,6 +24,10 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
+"""
+The User Model holds data about a user who is registered on the LuxFire system.
+"""
+
 from sqlalchemy import Table, Column, Integer, String, Sequence, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base

@@ -28,7 +28,7 @@
 import Server
 
 if __name__ == '__main__':
-    
-    s = Server.Server(None, None, True)
-    
-    s.start()
+	
+	s = Server.Server(None, None, True)
+	
+	s.start()
