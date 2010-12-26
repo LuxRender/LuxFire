@@ -31,7 +31,7 @@ Dispatcher.Server exposes a Dispatcher on the LuxFire network.
 if __name__ == '__main__':
 	from ..Server import Server
 	
-	from . import Dispatcher, DispatcherLog
+	from . import Dispatcher
 	
 	s = Server(debug=True)
 	s.start([Dispatcher])

@@ -30,7 +30,7 @@ objects across the network.
 """
 
 # System imports
-import threading
+import threading, time
 
 # Non-System imports
 import Pyro
@@ -81,7 +81,6 @@ class ServerObject(object): #Pyro.EventService.Clients.Publisher):
 		return self._pingval
 	
 	def dbo(self, str, always=False):
-		import time
 		with ServerObject.print_lock:
 			if self.debug or always: print('[%s] %s %s' %(time.strftime("%Y-%m-%d %H:%M:%S"), self, str))
 		
@@ -103,7 +102,7 @@ class ServerThread(threading.Thread, ServerObject):
 	daemon		= None
 	
 	def __repr__(self):
-		return '<ServerThread %s>' % self.name
+		return '<ServerThread %s>' % self.service
 	
 	def setup(self, service, name):
 		self.service = service
@@ -120,26 +119,35 @@ class ServerThread(threading.Thread, ServerObject):
 		
 		#self.daemon = Pyro.core.Daemon()
 		#self.daemon.useNameServer(ns)
-		created = False
-		while not created:
+		create_attempts = 10 # Max attempts to register in NS
+		while create_attempts > 0:
 			try:
 				#self.daemon.connect(self.so, self.name)
+				#print(self.name)
+				#print(self.so)
 				ns.register(self.name, self.so)
-				created = True
-			except:
-				self.log('Deleting stale NS entry: %s' % self.name)
+				create_attempts = -1
+			except Exception as err:
+				self.log(err)
+				#self.log('Deleting stale NS entry: %s' % self.name)
 				ns.remove(self.name)
-		self.log('Serving %s' % self.service)
-		self.daemon.requestLoop()	# Blocks until stopped externally
+				create_attempts -= 1
+				time.sleep(1)
+		
+		if create_attempts == 0:
+			self.log('Cannot register service with Pyro NS')
+		else:
+			self.log('Started')
+			self.daemon.requestLoop()	# Blocks until stopped externally
 		
 		try:
 			ns.remove(self.name)
 		except: pass
 		finally:
-			del self.so
-			del self.service
-			del self.daemon
-			del ns
+			if self.so: del self.so
+			self.service = '%s' % self.service # replace service object with id string
+			if self.daemon: del self.daemon
+			if ns: del ns
 		
 		self.log('Stopped')
 
@@ -148,8 +156,6 @@ class Server(ServerObject):
 	The actual main server process that starts and stops all other services
 	passed in a list to the start method (_so).
 	'''
-	
-	r_id = None
 	
 	# Dict of server threads
 	server_threads = {}
@@ -162,10 +168,9 @@ class Server(ServerObject):
 	
 	def __init__(self, debug=False):
 		self.SetDebug(debug)
-		self.r_id = '%x' % id(self)
 	
 	def __repr__(self):
-		return '<Server %s~%s>' % (self.bind, self.r_id)
+		return '<Server %s~%x>' % (self.bind, id(self))
 	
 	def new_server_thread(self, service, name):
 		st = ServerThread()
@@ -198,10 +203,9 @@ class Server(ServerObject):
 			thread_list = list(self.server_threads.items())
 			thread_list.reverse()
 			for serv, thread in thread_list:
-				thread.daemon.shutdown()
-				
-			#import time
-			#time.sleep(2)
+				if thread.daemon:
+					thread.daemon.shutdown()
+			
 			for serv, thread in thread_list:
 				thread.join()
 			self.log('...finished')

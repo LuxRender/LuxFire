@@ -28,71 +28,10 @@
 Renderer.Server exposes a LuxRender Context on the LuxFire network.
 """
 
-# LuxFire imports 
-from ..Server import ServerObject, Server
-
-# LuxRender imports
-from LuxRender import pylux
-
-class RendererServer(ServerObject):
-	'''
-	A Pyro server for a pylux.Context object. Access to the Context
-	is via the luxcall() method, other methods in this class provide
-	information about the Context
-	'''
-	_Service_Type = 'Renderer'
-	
-	# The Lux Rendering Context
-	_lux_context = None
-	
-	# Methods available in Rendering Context
-	_context_methods = []
-	
-	def __init__(self, debug, name=None):
-		'''
-		Set up this server for debug mode, configure its service name and then
-		create a Context and ask it what methods it has.
-		'''
-		ServerObject.__init__(self, debug=debug, name=name)
-		
-		self._lux_context = pylux.Context( '%x' % id(self) )
-		self._context_methods = dir(self._lux_context)
-	
-	def __del__(self):
-		'''
-		If this server is killed, make sure the Context ends cleanly
-		'''
-		self.dbo('Lux Context exit/wait/cleanup')
-		self._lux_context.exit()
-		self._lux_context.wait()
-		self._lux_context.cleanup() 
-	
-	def get_context_methods(self):
-		'''
-		Return the Context's methods and attributes to the client
-		'''
-		return self._context_methods
-	
-	def version(self):
-		return pylux.version()
-	
-	def luxcall(self, m, *a, **k):
-		'''
-		Pass method calls from client to the rendering context.
-		Exceptions raised by getattr() or the Context call will
-		be passed down to the client.
-		'''
-		
-		if hasattr(self._lux_context, m):
-			f = getattr(self._lux_context, m)
-			try:
-				return f(*a, **k)
-			except Exception as err:
-				return str(err)
-		else:
-			raise NotImplementedError('Method or attribute not found')
-
 if __name__ == '__main__':
+	from ..Server import Server
+	
+	from . import Renderer
 	
 	s = Server(debug=True)
-	s.start([RendererServer])
+	s.start([Renderer])
