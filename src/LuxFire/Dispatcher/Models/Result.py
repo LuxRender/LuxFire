@@ -36,11 +36,11 @@ from ..Database import Database, ModelBase, AUTO_TABLE_CREATE
 from .User import User
 
 ResultStatuses = [
-	'RENDER_COMPLETE',
-	'OFFLINE',
-	'SLAVE_FAILURE',
-	'SCENE_FAILURE',
-	'NO_CREDIT'
+	'RENDER_COMPLETE',		# Render completed without an error
+	'OFFLINE',				# Job render failed because LuxFire system is offline
+	'SLAVE_FAILURE',		# Job render failed because of a slave error
+	'SCENE_FAILURE',		# Job render failed because of a scene error
+	'NO_CREDIT'				# Job render failed due to lack of credit
 ]
 
 class Result(ModelBase):

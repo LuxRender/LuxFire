@@ -32,11 +32,14 @@ LuxRender.
 import configparser
 
 DefaultConfig = {
+	'LuxFire': {
+		'bind': '127.0.0.1',
+	},
 	'Dispatcher': {
 		'database': 'sqlite:///:memory:',	# By default database is temporary in memory!
 		'database_verbose': 'False',
 		'auto_table_create': 'False'
-	}
+	},
 }
 
 class LuxFireConfig(configparser.SafeConfigParser):

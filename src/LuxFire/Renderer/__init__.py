@@ -27,3 +27,8 @@
 """
 Renderer represents an instance of the LuxRender Renderer Context.
 """
+
+from LuxRender import LuxLog
+
+def RendererLog(message):
+	LuxLog(message, module_name='LuxFire.Renderer')

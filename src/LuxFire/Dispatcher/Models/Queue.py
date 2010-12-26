@@ -36,11 +36,12 @@ from ..Database import Database, ModelBase, AUTO_TABLE_CREATE
 from .User import User
 
 QueueStatuses = [
-	'NEW',
-	'UPLOADING',
-	'READY',
-	'RENDERING',
-	'ERROR'
+	'NEW',				# User has just created the job
+	'UPLOADING',		# User is uploading the scene
+	'DISTRIBUTING',		# Dispatcher is transferring scene to network storage
+	'READY',			# Scene is ready to render
+	'RENDERING',		# Scene is rendering
+	'ERROR'				# An error occurred while processing the job
 ]
 
 class Queue(ModelBase):
@@ -58,6 +59,6 @@ class Queue(ModelBase):
 	user = relationship(User, backref=backref('queue', order_by=id))
 	
 	def __repr__(self):
-		return "<Queue('%s','%s')>" % (self.user.email, self.jobname)
+		return "<Queue('%s','%s', %s)>" % (self.user.email, self.jobname, self.status)
 
 if AUTO_TABLE_CREATE: ModelBase.metadata.create_all(Database.Instance())

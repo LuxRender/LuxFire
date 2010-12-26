@@ -76,12 +76,10 @@ ServerLocator = ServerLocator()
 
 import Pyro.errors
 
-from Client import ServerLocator
-
 def ListLuxFireGroup(grp='Renderer'):
 	try:
-		LuxSlaves = ServerLocator.get_list('Lux.%s'%grp)
+		LuxSlaves = ServerLocator.get_list('LuxFire.%s'%grp)
 		return LuxSlaves
 	except Pyro.errors.NamingError as err:
-		print('Lux Pyro NS group Lux.%s not found - No LuxFire components are running ?'%grp)
+		print('LuxFire Pyro NS group Lux.%s not found - No LuxFire components are running ?'%grp)
 		return []

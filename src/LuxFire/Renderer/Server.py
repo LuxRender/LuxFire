@@ -25,27 +25,14 @@
 # ***** END GPL LICENCE BLOCK *****
 #
 """
-Renderer.Server exposes a LuxRender Context on the network.
+Renderer.Server exposes a LuxRender Context on the LuxFire network.
 """
 
 # LuxFire imports 
-from Server import ServerObject
+from ..Server import ServerObject, Server
 
 # LuxRender imports
 from LuxRender import pylux
-
-# Utility function for stats gatherer
-import datetime
-def format_elapsed_time(t):
-	'''
-	Format a number representing seconds into an HH:MM:SS elapsed timestamp
-	'''
-	
-	td = datetime.timedelta(seconds=t)
-	min = td.days*1440  + td.seconds/60.0
-	hrs = td.days*24	+ td.seconds/3600.0
-	
-	return '%i:%02i:%02i' % (hrs, min%60, td.seconds%60)
 
 class RendererServer(ServerObject):
 	'''
@@ -53,28 +40,22 @@ class RendererServer(ServerObject):
 	is via the luxcall() method, other methods in this class provide
 	information about the Context
 	'''
+	_Service_Type = 'Renderer'
 	
 	# The Lux Rendering Context
 	_lux_context = None
 	
 	# Methods available in Rendering Context
-	_context_id = None
 	_context_methods = []
 	
-	# Keep a track of rendering context threads
-	_maxthreads  = 0
-	_threadcount = 1
-	
-	def __init__(self, debug, name='', maxthreads = 0):
+	def __init__(self, debug, name=None):
 		'''
-		Set up this server for debug mode and maxthreads limit, then
+		Set up this server for debug mode, configure its service name and then
 		create a Context and ask it what methods it has.
 		'''
-		ServerObject.__init__(self, debug=debug, name='Lux.Renderer.%08x'%id(self)) 
+		ServerObject.__init__(self, debug=debug, name=name)
 		
-		self._maxthreads = maxthreads
-		self._context_id = '%x' % id(self) # hex address of self
-		self._lux_context = pylux.Context( self._context_id )
+		self._lux_context = pylux.Context( '%x' % id(self) )
 		self._context_methods = dir(self._lux_context)
 	
 	def __del__(self):
@@ -92,35 +73,6 @@ class RendererServer(ServerObject):
 		'''
 		return self._context_methods
 	
-	def _PublishThreadChange(self):
-		#self.publish('Renderer', ('ThreadsChange', self.name, self.threadcount))
-		pass
-	
-	# Control the max number of rendering threads this server may start
-	def _decrease_threads(self):
-		'''
-		If maxthreads limit is in effect, then decrease our internal
-		thread count
-		'''
-		if self._threadcount > 1:	# do not remove the last thread, will have trouble restarting
-			self._threadcount -= 1
-			self._PublishThreadChange()
-			return True
-		else:
-			return False
-	
-	def _increase_threads(self):
-		'''
-		If maxthreads limit is in effect, check that the limit has not
-		been reached. If it has, return False otherwise return True
-		'''
-		if self._maxthreads > 0 and self._threadcount == self._maxthreads:
-			return False
-		
-		self._threadcount += 1
-		self._PublishThreadChange()
-		return True
-	
 	def version(self):
 		return pylux.version()
 	
@@ -131,10 +83,6 @@ class RendererServer(ServerObject):
 		be passed down to the client.
 		'''
 		
-		
-		if m == 'removeThread': return self._decrease_threads()
-		if m == 'addThread': return self._increase_threads()
-		
 		if hasattr(self._lux_context, m):
 			f = getattr(self._lux_context, m)
 			try:
@@ -143,55 +91,8 @@ class RendererServer(ServerObject):
 				return str(err)
 		else:
 			raise NotImplementedError('Method or attribute not found')
+
+if __name__ == '__main__':
 	
-	# Which stats to gather from the Context ? ...
-	_stats_dict = {
-		'secElapsed':	   0.0,
-		'samplesSec':	   0.0,
-		'samplesTotSec':	0.0,
-		'samplesPx':		0.0,
-		'efficiency':	   0.0,
-		#'filmXres':		 0.0,
-		#'filmYres':		 0.0,
-		#'displayInterval':  0.0,
-		'filmEV':		   0.0,
-		#'sceneIsReady':	 0.0,
-		#'filmIsReady':	  0.0,
-		#'terminated':	   0.0,
-	}
-	
-	# ... and how to format them for reading ?
-	_stats_format = {
-		'secElapsed':	   format_elapsed_time,
-		'samplesSec':	   lambda x: 'Samples/Sec: %0.2f'%x,
-		'samplesTotSec':	lambda x: 'Total Samples/Sec: %0.2f'%x,
-		'samplesPx':		lambda x: 'Samples/Px: %0.2f'%x,
-		'efficiency':	   lambda x: 'Efficiency: %0.2f %%'%x,
-		'filmEV':		   lambda x: 'EV: %0.2f'%x,
-	}
-	
-	# The formatted stats string
-	_stats_string = ''
-	
-	def _compute_stats(self):
-		'''
-		Gather and format stats from the rendering context
-		'''
-		for k in self._stats_dict.keys():
-			self._stats_dict[k] = self._lux_context.statistics(k)
-		
-		self._stats_string = ' | '.join(['%s'%self._stats_format[k](v) for k,v in self._stats_dict.items()])
-		
-	def get_stats_dict(self):
-		'''
-		Return the raw stats dict to the client 
-		'''
-		self._compute_stats()
-		return self._stats_dict
-		
-	def get_stats_string(self):
-		'''
-		Return the formatted stats string to the client
-		'''
-		self._compute_stats()
-		return self._stats_string
+	s = Server(debug=True)
+	s.start([RendererServer])

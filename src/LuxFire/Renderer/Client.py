@@ -29,7 +29,7 @@ Renderer.Client is a local proxy for a remote Renderer.Server context.
 """
 
 # Pyro Imports
-import Pyro.util
+import Pyro
 
 class RemoteCallable(object):
 	'''
@@ -95,3 +95,19 @@ class RendererClient(object):
 			return getattr(self.RemoteRenderer, m)
 		else:
 			raise AttributeError('Cannot access remote private members')
+
+if __name__ == '__main__':
+	from ..Client import ServerLocator, ListLuxFireGroup
+	
+	LuxSlavesNames = ListLuxFireGroup(grp='Renderer')
+	
+	if len(LuxSlavesNames) > 0:
+		slaves = {}
+		for LN, i in LuxSlavesNames.items():
+			RS = ServerLocator.get_by_name(LN)
+			LS = RendererClient(RS)
+			slaves[LN] = (LS, RS)
+		print(slaves)
+	else:
+		print('No remote LuxFire components available')
+

@@ -28,7 +28,41 @@
 Dispatcher is a Render Queue/Job manager and dispatcher for Renderer Slaves.
 """
 
+import datetime
+from sqlalchemy.sql.expression import desc
+
+from .Database import Database
+from .Models.Queue import Queue
+from .Models.Result import Result
+
+from ..Server import ServerObject
+
 from LuxRender import LuxLog
 
 def DispatcherLog(message):
 	LuxLog(message, module_name='LuxFire.Dispatcher')
+
+class Dispatcher(ServerObject):
+	_Service_Type = 'Dispatcher'
+	
+	db = Database.Session()
+	
+	# All dispatcher methods need to RETURN values, and not use *Log or print
+	# so the the methods are servable over the network
+	
+	def add_queue(self, user_id, path, jobname, haltspp=-1, halttime=-1):
+		q = Queue()
+		q.user_id = user_id
+		q.path = path
+		q.jobname = jobname
+		q.haltspp = haltspp
+		q.halttime = halttime
+		q.date = datetime.datetime.now()
+		q.status = 'NEW'
+		return self.db.add(q)
+	
+	def list_queue(self):
+		return self.db.query(Queue).order_by(desc(Queue.id)).all()
+	
+	def list_results(self):
+		return self.db.query(Result).order_by(desc(Result.id)).all()

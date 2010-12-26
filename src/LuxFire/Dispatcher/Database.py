@@ -56,7 +56,10 @@ class Database(object):
 	@classmethod
 	def Session(cls):
 		if cls._session == None:
-			cls._session = sessionmaker(bind=cls.Instance())
+			cls._session = sessionmaker(
+				bind=cls.Instance(),
+				autocommit=True
+			)
 			
 		return cls._session()
 

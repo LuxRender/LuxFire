@@ -33,7 +33,10 @@ objects across the network.
 import threading
 
 # Non-System imports
-# import Pyro.EventService.Clients
+import Pyro
+
+# LuxFire imports
+from .. import LuxFireConfig
 
 class ServerObject(object): #Pyro.EventService.Clients.Publisher):
 	'''
@@ -41,8 +44,10 @@ class ServerObject(object): #Pyro.EventService.Clients.Publisher):
 	def SetDebug(bool)		- Change debug on/off
 	def Ping()				- Ping the object
 	def dbo(str, bool)		- DeBugOutput - threadsafe print to stdout (bool==always, regardless of self.debug)
-	def log(str)			  - Shortcut for self.dbo(str, True)
+	def log(str)			- Shortcut for self.dbo(str, True)
 	'''
+	
+	_Service_Type = 'Unknown'
 	
 	print_lock = threading.Lock()
 	
@@ -50,14 +55,20 @@ class ServerObject(object): #Pyro.EventService.Clients.Publisher):
 	_pingval = 0
 	name = ''
 	
-	def __init__(self, debug=False, name=''):
+	def __init__(self, debug=False, name=None):
 		'''
 		Constructor
 		'''
 		#Pyro.EventService.Clients.Publisher.__init__(self)
 		
 		self.SetDebug(debug)
-		self.SetName(name)
+		if name != None:
+			self.SetName(name)
+		else:
+			self.SetName('LuxFire.%s.%08x' % (self._Service_Type, id(self)))
+	
+	def __repr__(self):
+		return '<%s>' % self.name
 	
 	def SetName(self, name):
 		self.name = name
@@ -86,10 +97,10 @@ class ServerThread(threading.Thread, ServerObject):
 	'name' is service name to register with Pyro NS
 	'''
 	
-	service	 = None  # Object to Serve (Proxy)
+	service		= None  # Object to Serve (Proxy)
 	name		= None  # Proxy Name
-	so		  = None  # Pyro Proxy URI
-	daemon	  = None
+	so			= None  # Pyro Proxy URI
+	daemon		= None
 	
 	def __repr__(self):
 		return '<ServerThread %s>' % self.name
@@ -97,12 +108,10 @@ class ServerThread(threading.Thread, ServerObject):
 	def setup(self, service, name):
 		self.service = service
 		self.name = name
-		import Pyro.core
-		self.daemon=Pyro.core.Daemon()
-		self.so=self.daemon.register(service)
+		self.daemon = Pyro.core.Daemon()
+		self.so = self.daemon.register(self.service)
 	
 	def run(self):
-		import Pyro.naming
 		ns = Pyro.naming.locateNS()
 		#try:
 		#	ns.createGroup(':Lux')
@@ -120,8 +129,8 @@ class ServerThread(threading.Thread, ServerObject):
 			except:
 				self.log('Deleting stale NS entry: %s' % self.name)
 				ns.remove(self.name)
-		self.log('Serving LuxRender Context version %s' % self.service.version())
-		self.daemon.requestLoop()	   # Blocks until stopped externally
+		self.log('Serving %s' % self.service)
+		self.daemon.requestLoop()	# Blocks until stopped externally
 		
 		try:
 			ns.remove(self.name)
@@ -137,16 +146,10 @@ class ServerThread(threading.Thread, ServerObject):
 class Server(ServerObject):
 	'''
 	The actual main server process that starts and stops all other services
-	configured to run in this instance
+	passed in a list to the start method (_so).
 	'''
 	
 	r_id = None
-	
-	# CLI_Args object containing.... CLI args
-	args = None
-	
-	# Settings from config file
-	config = None
 	
 	# Dict of server threads
 	server_threads = {}
@@ -155,15 +158,11 @@ class Server(ServerObject):
 	run = None
 	
 	# Local hostname or IP addr to use for Pyro services
-	bind = None
+	bind = LuxFireConfig.Instance().get('LuxFire', 'bind')
 	
-	def __init__(self, args, config, debug=False):
+	def __init__(self, debug=False):
 		self.SetDebug(debug)
-		self.args = args
-		self.config = config
-		
-		import random
-		self.r_id = '%05x' % (random.random()*9999)
+		self.r_id = '%x' % id(self)
 	
 	def __repr__(self):
 		return '<Server %s~%s>' % (self.bind, self.r_id)
@@ -174,26 +173,17 @@ class Server(ServerObject):
 		self.server_threads[name] = st
 		st.start()
 	
-	def start(self):
+	def start(self, _so):
 		# First set up bind address
-		import Pyro
-		#self.bind = self.config.get('server','bind')
-		Pyro.config.PYRO_HOST = '192.168.0.164' #self.bind
+		Pyro.config.PYRO_HOST = self.bind
 		
 		self.log('Server starting...')
 		
-		
-		# ACTUAL SERVER OBJECT INSTATIATION HAPPENS HERE
-		if True: #self.config.getboolean('RenderServer', 'start'):
-			from Server.Renderer import RendererServer
-			debug = True #self.debug and self.config.getboolean('RenderServer', 'debug')
-			r = RendererServer(debug=debug)
+		for server in _so:
+			r = server(debug=self.debug)
 			self.new_server_thread(r, r.name)
-		# --- 
-		
 		
 		try:
-			import threading
 			self.run = threading.Event()
 			while not self.run.is_set():
 				self.run.wait(10)

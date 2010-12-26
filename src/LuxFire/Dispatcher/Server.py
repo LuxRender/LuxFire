@@ -24,29 +24,14 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
-import Pyro.errors
-
-from Client import ServerLocator
-
-def list_luxfire_components(grp='Renderer'):
-	try:
-		LuxSlaves = ServerLocator.get_list('Lux.%s'%grp)
-		return LuxSlaves
-	except Pyro.errors.NamingError as err:
-		print('Lux Pyro NS group "%s" not found - No LuxFire components are running ?'%grp)
-		return []
-		
+"""
+Dispatcher.Server exposes a Dispatcher on the LuxFire network.
+"""
 
 if __name__ == '__main__':
-	LuxSlavesNames = list_luxfire_components()
+	from ..Server import Server
 	
-	if len(LuxSlavesNames) > 0:
-		from Client.Renderer import RendererClient
-		slaves = {}
-		for LN, i in LuxSlavesNames.items():
-			RS = ServerLocator.get_by_name(LN)
-			LS = RendererClient(RS)
-			slaves[LN] = (LS, RS)
-		print(slaves)
-	else:
-		print('No remote Lux components available')
+	from . import Dispatcher, DispatcherLog
+	
+	s = Server(debug=True)
+	s.start([Dispatcher])
