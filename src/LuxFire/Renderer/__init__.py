@@ -29,7 +29,7 @@ Renderer represents an instance of the LuxRender Renderer Context.
 """
 
 # LuxRender imports
-from LuxRender import LuxLog, pylux
+from LuxRender import LuxLog
 
 # LuxFire imports 
 from ..Server import ServerObject
@@ -58,17 +58,21 @@ class Renderer(ServerObject):
 		'''
 		ServerObject.__init__(self, debug=debug, name=name)
 		
+		from LuxRender import pylux
 		self._lux_context = pylux.Context( '%x' % id(self) )
 		self._context_methods = dir(self._lux_context)
 	
 	def __del__(self):
+		self._cleanup()
+	
+	def _cleanup(self):
 		'''
 		If this server is killed, make sure the Context ends cleanly
 		'''
 		self.dbo('Lux Context exit/wait/cleanup')
 		self._lux_context.exit()
 		self._lux_context.wait()
-		self._lux_context.cleanup() 
+		self._lux_context.cleanup()
 	
 	def get_context_methods(self):
 		'''

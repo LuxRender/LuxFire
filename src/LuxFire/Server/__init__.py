@@ -86,6 +86,12 @@ class ServerObject(object): #Pyro.EventService.Clients.Publisher):
 		
 	def log(self, str):
 		self.dbo(str, True)
+	
+	def _cleanup(self):
+		"""
+		This method is called when the ServerThread holding this object ends
+		"""
+		pass
 
 class ServerThread(threading.Thread, ServerObject):
 	'''
@@ -145,6 +151,7 @@ class ServerThread(threading.Thread, ServerObject):
 		except: pass
 		finally:
 			if self.so: del self.so
+			self.service._cleanup()
 			self.service = '%s' % self.service # replace service object with id string
 			if self.daemon: del self.daemon
 			if ns: del ns
