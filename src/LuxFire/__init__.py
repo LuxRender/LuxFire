@@ -28,18 +28,24 @@
 LuxFire is a distributed network rendering and rendering management system for
 LuxRender.
 """
+import configparser, platform
 
 from LuxRender import LuxLog
 
 def LuxFireLog(message):
 	LuxLog(message, module_name='LuxFire')
 
-import configparser
-
 DefaultConfig = {
 	'LuxFire': {
+		# Default bind address is localhost only, services will not be broadcast!
 		'bind': '127.0.0.1',
 		'database': 'sqlite:///db_luxfire.sqlite3',
+	},
+	'NetworkStorage': {
+		# Configurable per platform.system()
+		'Linux': '/mnt/network_location/LuxFire',
+		'Darwin': '/Volumes/Network_Drive/LuxFire',
+		'Windows': 'N:/LuxFire'
 	},
 }
 
@@ -66,3 +72,8 @@ class LuxFireConfig(configparser.SafeConfigParser):
 	def Save(self):
 		with open(self.filename, 'w') as cf:
 			self.write(cf)
+	
+	def NetworkStoragePath(self):
+		"""Helper method to get NetworkStorage path applicable to this system"""
+		
+		return self.get('NetworkStorage', platform.system().lower())

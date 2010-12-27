@@ -61,6 +61,16 @@ if __name__ == '__main__':
 		default=False,
 		help='Show database creation progress'
 	)
+	parser.add_option(
+		'-b',
+		'--bind',
+		dest='bind',
+		metavar='ADDR',
+		help='Specify the local IP/hostname to bind services to. This would '
+		'usually be the IP address of this machine\'s main network adaptor. '
+		'It is not advisable to bind to IP addresses that are accessible on '
+		'the internet.'
+	)
 	(options, args) = parser.parse_args()
 	
 	from .. import LuxFireLog
@@ -73,7 +83,11 @@ if __name__ == '__main__':
 		# Renew the _instance to force reloading the new configuration
 		Database.Instance(new=True)
 	
+	if options.bind:
+		LuxFireConfig.Instance().set('LuxFire', 'bind', options.bind)
+	
 	# Update/create a default config file too
+	LuxFireLog('Creating/updating local config file...')
 	LuxFireConfig.Instance().Save()
 	
 	LuxFireLog('Creating new database...')
