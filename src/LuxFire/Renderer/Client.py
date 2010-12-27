@@ -115,4 +115,3 @@ def RendererGroup():
 if __name__ == '__main__':
 	slaves = RendererGroup()
 	print(slaves)
-

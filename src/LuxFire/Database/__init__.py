@@ -25,30 +25,31 @@
 # ***** END GPL LICENCE BLOCK *****
 #
 """
-Dispatcher.Database manages the database connection for Dispatcher's persistent
-data storage.
+LuxFire.Database manages the database connection for persistent data storage.
 """
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+ModelBase = declarative_base()
 
 from .. import LuxFireConfig
-
-DATABASE_VERBOSE = LuxFireConfig.Instance().getboolean('Dispatcher', 'database_verbose')
-AUTO_TABLE_CREATE = LuxFireConfig.Instance().getboolean('Dispatcher', 'auto_table_create')
 
 class Database(object):
 	_instance = None
 	_session = None
 	
 	@classmethod
-	def Instance(cls):
-		if cls._instance == None:
-			# TODO: read database configuration from file
+	def CreateDatabase(cls, verbose):
+		db = cls.Instance()
+		db.echo = verbose
+		ModelBase.metadata.create_all(db)
+	
+	@classmethod
+	def Instance(cls, new=False):
+		if cls._instance == None or new:
 			cls._instance = create_engine(
-				LuxFireConfig.Instance().get('Dispatcher', 'database'),
-				echo=DATABASE_VERBOSE
+				LuxFireConfig.Instance().get('LuxFire', 'database')
 			)
 			
 		return cls._instance
@@ -62,5 +63,3 @@ class Database(object):
 			)
 			
 		return cls._session()
-
-ModelBase = declarative_base()

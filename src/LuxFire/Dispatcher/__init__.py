@@ -31,9 +31,9 @@ Dispatcher is a Render Queue/Job manager and dispatcher for Renderer Slaves.
 import datetime
 from sqlalchemy.sql.expression import desc
 
-from .Database import Database
-from .Models.Queue import Queue
-from .Models.Result import Result
+from ..Database import Database
+from ..Database.Models.Queue import Queue
+from ..Database.Models.Result import Result
 
 from ..Server import ServerObject
 

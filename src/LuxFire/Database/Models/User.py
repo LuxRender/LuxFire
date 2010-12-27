@@ -25,6 +25,38 @@
 # ***** END GPL LICENCE BLOCK *****
 #
 """
-Dispatcher.Models contains the Models for the Dispatcher's database persistent
-data storage.
+The User Model holds data about a user who is registered on the LuxFire system.
 """
+
+from sqlalchemy import Table, Column, Integer, String, Sequence, ForeignKey
+from sqlalchemy.orm import relationship
+
+from .. import ModelBase
+
+# Role is needed for relationship
+from .Role import Role
+
+roles_users = Table(
+	'roles_users',
+	ModelBase.metadata,
+	Column('role_id', Integer(12), ForeignKey('roles.id')),
+	Column('user_id', Integer(12), ForeignKey('users.id'))
+)
+
+class User(ModelBase):
+	__tablename__ = 'users'
+	
+	id = Column(Integer(12), Sequence('user_id_seq'), primary_key=True)
+	email = Column(String(128))
+	password = Column(String(64))
+	credits = Column(Integer(10))
+	
+	roles = relationship(Role, secondary=roles_users, backref='users')
+	
+	def __init__(self, email, password, credits):
+		self.email = email
+		self.password = password
+		self.credits = credits
+	
+	def __repr__(self):
+		return "<User('%s','%s')>" % (self.id, self.email)

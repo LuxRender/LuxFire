@@ -25,8 +25,8 @@
 # ***** END GPL LICENCE BLOCK *****
 #
 """
-Dispatcher.CreateDatabase is responsible for initalising the database necessary
-for Dispatcher to operate.
+Database.Create is responsible for initalising the database necessary for some
+LuxFire components to operate.
 """
 
 if __name__ == '__main__':
@@ -34,15 +34,15 @@ if __name__ == '__main__':
 	try:
 		import sqlalchemy
 	except ImportError as err:
-		print('LuxFire.Dispatcher startup error: %s' % err)
+		print('LuxFire.Database.Create startup error: %s' % err)
 		sys.exit(-1)
 	
 	import optparse
 	parser = optparse.OptionParser(
-		prog='LuxFire.Dispatcher.CreateDatabase',
-		description='Creates the database required for LuxFire.Dispatcher. '
+		prog='LuxFire.Database.Create',
+		description='Creates the database required for LuxFire. '
 		'If a non-default database connection string is specified, it will '
-		'be saved into the luxfire.cfg file so that LuxFire.Dispatcher can '
+		'be saved into the luxfire.cfg file so that LuxFire can '
 		'connect to it automatically the next time it is run'
 	)
 	parser.add_option(
@@ -63,29 +63,26 @@ if __name__ == '__main__':
 	)
 	(options, args) = parser.parse_args()
 	
-	from . import DispatcherLog
-	
-	# Set verbose mode to see table creation output
-	from . import Database
-	Database.DATABASE_VERBOSE = options.verbose
-	
-	# Set auto table create
-	Database.AUTO_TABLE_CREATE = True
+	from .. import LuxFireLog
 	
 	# Use the database connection specified, and save it to config file
+	from .. import LuxFireConfig
+	from . import Database
 	if options.database:
-		from .. import LuxFireConfig
-		LuxFireConfig.Instance().set('Dispatcher', 'database', options.database)
-		LuxFireConfig.Instance().Save()
+		LuxFireConfig.Instance().set('LuxFire', 'database', options.database)
+		# Renew the _instance to force reloading the new configuration
+		Database.Instance(new=True)
 	
-	DispatcherLog('Creating new database...')
+	# Update/create a default config file too
+	LuxFireConfig.Instance().Save()
 	
-	# Just importing the Models is enough to cause Table creation when
-	# AUTO_TABLE_CREATE == True. They need to be imported in the correct order
-	# to meet relationship dependencies
+	LuxFireLog('Creating new database...')
+	
 	from .Models.Role import Role
 	from .Models.User import User
 	from .Models.Queue import Queue
 	from .Models.Result import Result
 	
-	DispatcherLog('... done')
+	Database.CreateDatabase(options.verbose)
+	
+	LuxFireLog('... done')

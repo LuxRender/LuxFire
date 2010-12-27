@@ -26,13 +26,13 @@
 #
 """
 The Queue Model holds data about rendering jobs that are yet to be processed by
-the Dispatcher.
+LuxFire.Dispatcher.
 """
 
 from sqlalchemy import Column, DateTime, Enum, Integer, String, Sequence, Text, ForeignKey
 from sqlalchemy.orm import relationship, backref
 
-from ..Database import Database, ModelBase, AUTO_TABLE_CREATE
+from .. import ModelBase
 from .User import User
 
 QueueStatuses = [
@@ -60,5 +60,3 @@ class Queue(ModelBase):
 	
 	def __repr__(self):
 		return "<Queue('%s','%s', %s)>" % (self.user.email, self.jobname, self.status)
-
-if AUTO_TABLE_CREATE: ModelBase.metadata.create_all(Database.Instance())

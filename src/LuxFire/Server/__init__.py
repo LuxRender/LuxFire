@@ -38,7 +38,7 @@ import Pyro
 # LuxFire imports
 from .. import LuxFireConfig
 
-class ServerObject(object): #Pyro.EventService.Clients.Publisher):
+class ServerObject(object):
 	'''
 	Base Class for all Server Processes. Provides:
 	def SetDebug(bool)		- Change debug on/off
@@ -59,7 +59,6 @@ class ServerObject(object): #Pyro.EventService.Clients.Publisher):
 		'''
 		Constructor
 		'''
-		#Pyro.EventService.Clients.Publisher.__init__(self)
 		
 		self.SetDebug(debug)
 		if name != None:
@@ -120,34 +119,32 @@ class ServerThread(threading.Thread, ServerObject):
 		self.so = self.daemon.register(self.service)
 	
 	def run(self):
-		ns = Pyro.naming.locateNS()
-		#try:
-		#	ns.createGroup(':Lux')
-		#	ns.createGroup(':Lux.Renderer')
-		#except: pass
+		# Max attempts to register in NS
+		create_attempts = 10
+		try:
+			ns = Pyro.naming.locateNS()
+		except Exception as err:
+			self.log('Service publication error: %s' % err)
+			create_attempts = 0
 		
-		#self.daemon = Pyro.core.Daemon()
-		#self.daemon.useNameServer(ns)
-		create_attempts = 10 # Max attempts to register in NS
 		while create_attempts > 0:
 			try:
-				#self.daemon.connect(self.so, self.name)
-				#print(self.name)
-				#print(self.so)
 				ns.register(self.name, self.so)
 				create_attempts = -1
 			except Exception as err:
 				self.log(err)
-				#self.log('Deleting stale NS entry: %s' % self.name)
-				ns.remove(self.name)
+				try:
+					ns.remove(self.name)
+				except: pass
 				create_attempts -= 1
 				time.sleep(1)
 		
-		if create_attempts == 0:
-			self.log('Cannot register service with Pyro NS')
-		else:
-			self.log('Started')
-			self.daemon.requestLoop()	# Blocks until stopped externally
+		self.log('Started: Pyro URL: %s' % self.so)
+		
+		self.log('Discoverable in Pyro nameserver: %s' % (create_attempts!=0))
+		
+		# Blocks until stopped externally
+		self.daemon.requestLoop()
 		
 		try:
 			ns.remove(self.name)
@@ -157,7 +154,7 @@ class ServerThread(threading.Thread, ServerObject):
 			self.service._cleanup()
 			self.service = '%s' % self.service # replace service object with id string
 			if self.daemon: del self.daemon
-			if ns: del ns
+			if 'ns' in locals(): del ns
 		
 		self.log('Stopped')
 

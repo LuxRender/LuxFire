@@ -25,44 +25,6 @@
 # ***** END GPL LICENCE BLOCK *****
 #
 """
-LuxFire is a distributed network rendering and rendering management system for
-LuxRender.
+Database.Models contains the Models for LuxFire's database persistent data
+storage.
 """
-
-from LuxRender import LuxLog
-
-def LuxFireLog(message):
-	LuxLog(message, module_name='LuxFire')
-
-import configparser
-
-DefaultConfig = {
-	'LuxFire': {
-		'bind': '127.0.0.1',
-		'database': 'sqlite:///db_luxfire.sqlite3',
-	},
-}
-
-class LuxFireConfig(configparser.SafeConfigParser):
-	_instance = None
-	
-	filename = 'luxfire.cfg'
-	
-	@classmethod
-	def Instance(cls):
-		if cls._instance == None:
-			cls._instance = cls()
-			cls._instance.read(cls.filename)
-			# Populate with defaults
-			for k_s, v_s in DefaultConfig.items():
-				if not cls._instance.has_section(k_s):
-					cls._instance.add_section(k_s)
-				for k_i, v_i in v_s.items():
-					if not cls._instance.has_option(k_s, k_i):
-						cls._instance.set(k_s, k_i, v_i)
-		
-		return cls._instance
-	
-	def Save(self):
-		with open(self.filename, 'w') as cf:
-			self.write(cf)

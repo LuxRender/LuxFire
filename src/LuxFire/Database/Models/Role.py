@@ -30,7 +30,7 @@ The Role Model is a description of a permission that may be granted to a User.
 
 from sqlalchemy import Column, Integer, String, Sequence
 
-from ..Database import Database, ModelBase, AUTO_TABLE_CREATE
+from .. import ModelBase
 
 class Role(ModelBase):
 	__tablename__ = 'roles'
@@ -45,5 +45,3 @@ class Role(ModelBase):
 	
 	def __repr__(self):
 		return "<Role('%s')>" % (self.name)
-
-if AUTO_TABLE_CREATE: ModelBase.metadata.create_all(Database.Instance())

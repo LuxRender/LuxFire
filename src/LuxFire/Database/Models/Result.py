@@ -26,13 +26,13 @@
 #
 """
 The Result Model holds information about rendering jobs that have been processed
-by the Dispatcher.
+by LuxFire.Dispatcher.
 """
 
 from sqlalchemy import Column, DateTime, Enum, Integer, String, Sequence, Text, ForeignKey
 from sqlalchemy.orm import relationship, backref
 
-from ..Database import Database, ModelBase, AUTO_TABLE_CREATE
+from .. import ModelBase
 from .User import User
 
 ResultStatuses = [
@@ -57,5 +57,3 @@ class Result(ModelBase):
 	
 	def __repr__(self):
 		return "<Queue('%s','%s')>" % (self.user.email, self.jobname)
-
-if AUTO_TABLE_CREATE: ModelBase.metadata.create_all(Database.Instance())
