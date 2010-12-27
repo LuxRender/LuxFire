@@ -38,9 +38,11 @@ from .User import User
 QueueStatuses = [
 	'NEW',				# User has just created the job
 	'UPLOADING',		# User is uploading the scene
+	'PENDING',			# User has uploaded, scene is pending processing
 	'DISTRIBUTING',		# Dispatcher is transferring scene to network storage
 	'READY',			# Scene is ready to render
 	'RENDERING',		# Scene is rendering
+	# There's no 'completed' status since the job will be moved to Results table
 	'ERROR'				# An error occurred while processing the job
 ]
 

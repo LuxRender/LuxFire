@@ -96,9 +96,33 @@ class ServerObject(object):
 	
 	def _cleanup(self):
 		"""
-		This method is called when the ServerThread holding this object ends
+		This method is called when the ServerThread holding this object ends.
+		This method is called after _stop() in the shutdown process.
 		"""
 		pass
+	
+	def _start(self):
+		"""
+		If the service object needs to start its own threads/timers etc, it
+		should do so in this method.
+		"""
+		pass
+	
+	def _stop(self):
+		"""
+		If the service object needs to stop/join its own threads/timers etc, it
+		should do so in this method.
+		"""
+		pass
+
+class ServerObjectThread(threading.Thread, ServerObject):
+	"""
+	This is a convenience mixin which allows using a ServerObject as a thread
+	"""
+	
+	def __init__(self, debug = False):
+		threading.Thread.__init__(self)
+		ServerObject.__init__(self, debug)
 
 class ServerThread(threading.Thread, ServerObject):
 	'''
@@ -112,7 +136,7 @@ class ServerThread(threading.Thread, ServerObject):
 	service		= None  # Object to Serve (Proxy)
 	name		= None  # Proxy Name
 	so			= None  # Pyro Proxy URI
-	daemon		= None
+	daemon		= None  # Pyro service daemon
 	
 	def __repr__(self):
 		return '<ServerThread %s>' % self.service
@@ -144,8 +168,8 @@ class ServerThread(threading.Thread, ServerObject):
 				create_attempts -= 1
 				time.sleep(1)
 		
+		self.service._start()
 		self.log('Started: Pyro URL: %s' % self.so)
-		
 		self.log('Discoverable in Pyro nameserver: %s' % (create_attempts!=0))
 		
 		# Blocks until stopped externally
@@ -156,6 +180,7 @@ class ServerThread(threading.Thread, ServerObject):
 		except: pass
 		finally:
 			if self.so: del self.so
+			self.service._stop()
 			self.service._cleanup()
 			self.service = '%s' % self.service # replace service object with id string
 			if self.daemon: del self.daemon

@@ -41,11 +41,19 @@ DefaultConfig = {
 		'bind': '127.0.0.1',
 		'database': 'sqlite:///db_luxfire.sqlite3',
 	},
-	'NetworkStorage': {
+	'LocalStorage': {
 		# Configurable per platform.system()
-		'Linux': '/mnt/network_location/LuxFire',
-		'Darwin': '/Volumes/Network_Drive/LuxFire',
-		'Windows': 'N:/LuxFire'
+		'linux': '../incoming',
+		'darwin': '../incoming',
+		'windows': '../incoming'
+	},
+	'NetworkStorage': {
+		'type': 'mounted_filesystem',
+		
+		# Configurable per platform.system()
+		'linux': '/mnt/network_location/LuxFire',
+		'darwin': '/Volumes/Network_Drive/LuxFire',
+		'windows': 'N:/LuxFire'
 	},
 }
 
@@ -73,7 +81,12 @@ class LuxFireConfig(configparser.SafeConfigParser):
 		with open(self.filename, 'w') as cf:
 			self.write(cf)
 	
-	def NetworkStoragePath(self):
+	def NetworkStorage(self):
 		"""Helper method to get NetworkStorage path applicable to this system"""
 		
 		return self.get('NetworkStorage', platform.system().lower())
+	
+	def LocalStorage(self):
+		"""Helper method to get LocalStorage path applicable to this system"""
+		
+		return self.get('LocalStorage', platform.system().lower())
