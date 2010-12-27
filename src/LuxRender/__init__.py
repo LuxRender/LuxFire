@@ -30,4 +30,4 @@ def LuxLog(str, module_name='Lux'):
 	"""Print a message to the console, prefixed with the module_name
 	and the current time.
 	"""
-	print("[%s %s] %s" % (module_name, time.strftime('%Y-%b-%d %H:%M:%S'), str))
+	print("[%s %s] %s" % (time.strftime('%Y-%b-%d %H:%M:%S'), module_name, str))

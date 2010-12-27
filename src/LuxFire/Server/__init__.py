@@ -35,6 +35,9 @@ import threading, time
 # Non-System imports
 import Pyro
 
+# LuxRender imports
+from LuxRender import LuxLog
+
 # LuxFire imports
 from .. import LuxFireConfig
 
@@ -84,7 +87,9 @@ class ServerObject(object):
 	
 	def dbo(self, str, always=False):
 		with ServerObject.print_lock:
-			if self.debug or always: print('[%s] %s %s' %(time.strftime("%Y-%m-%d %H:%M:%S"), self, str))
+			if self.debug or always:
+				#print('[%s] %s %s' %(time.strftime("%Y-%m-%d %H:%M:%S"), self, str))
+				LuxLog(str, module_name=self)
 		
 	def log(self, str):
 		self.dbo(str, True)
