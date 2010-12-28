@@ -25,7 +25,9 @@
 # ***** END GPL LICENCE BLOCK *****
 #
 """
-Renderer.Client is a local proxy for a remote Renderer.Server context.
+Renderer.Client is a local proxy for a remote Renderer.Server context. We have
+to create a local Client proxy because of the binary (non-picklable) nature of
+the LuxRender Context which is being served.
 """
 
 # Pyro Imports

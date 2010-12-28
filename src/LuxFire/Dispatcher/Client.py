@@ -25,42 +25,34 @@
 # ***** END GPL LICENCE BLOCK *****
 #
 """
-LuxFire.Database manages the database connection for persistent data storage.
+Dispatcher.Client provides access to existing remote Dispatcher.Servers.
 """
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-ModelBase = declarative_base()
+from ..Client import ListLuxFireGroup, ServerLocator
 
-from .. import LuxFireConfig
-
-class Database(object):
-	_instance = None
-	_sessionmaker = None
+def DispatcherGroup():
+	LuxSlavesNames = ListLuxFireGroup('Dispatcher')
 	
-	@classmethod
-	def CreateDatabase(cls, verbose):
-		db = cls.Instance()
-		db.echo = verbose
-		ModelBase.metadata.create_all(db)
-	
-	@classmethod
-	def Instance(cls, new=False):
-		if cls._instance == None or new:
-			cls._instance = create_engine(
-				LuxFireConfig.Instance().get('LuxFire', 'database'),
-			)
-			
-		return cls._instance
-	
-	@classmethod
-	def Session(cls):
-		if cls._sessionmaker == None:
-			cls._sessionmaker = sessionmaker(
-				bind=cls.Instance(),
-				autocommit=True,
-				autoflush=True
-			)
+	if len(LuxSlavesNames) > 0:
+		slaves = {}
+		for LN in LuxSlavesNames:
+			try:
+				RS = ServerLocator.Instance().get_by_name(LN)
+				slaves[LN] = RS
+			except Exception as err:
+				DispatcherLog('Error with remote renderer %s: %s' % (LN, err))
 		
-		return cls._sessionmaker()
+		return slaves
+	else:
+		return {}
+
+if __name__ == '__main__':
+	from . import DispatcherLog
+	slaves = DispatcherGroup()
+	if len(slaves.keys()) == 1:
+		for sn, Dispatcher in slaves.items():
+			pass
+		print('Just one dispatcher found, available as "Dispatcher" variable.')
+		del slaves, sn
+	else:
+		print(slaves)

@@ -30,11 +30,12 @@ Dispatcher is a Render Queue/Job manager and dispatcher for Renderer.Servers.
 
 import datetime, glob, os, shutil, threading, time
 from sqlalchemy.sql.expression import desc
+from sqlalchemy.orm import eagerload
 
 from LuxRender import LuxLog, TimerThread
 import Pyro.errors
 
-from .. import LuxFireConfig
+from .. import LuxFireConfig, clean_file_name
 from ..Client import ClientException
 from ..Database import Database
 from ..Database.Models.Queue import Queue
@@ -114,8 +115,6 @@ class DispatcherDistributor(ServerObjectThread):
 class DispatcherWorker(ServerObjectThread):
 	_Service_Type = 'DispatcherWorker'
 	
-	db = Database.Session()
-	
 	renderer_servers = None
 	
 	def __repr__(self):
@@ -155,16 +154,27 @@ class DispatcherWorker(ServerObjectThread):
 		except (ClientException, Pyro.errors.PyroError):
 			self.renderer_servers = []
 			self.log('Pyro name server not found, cannot Dispatch any work!')
+			return
 		
+		db = Database.Session()
+		
+		self.dbo('Processing RENDERING items:')
 		# Process the RENDERING items first, so that we can free up Renderer.Servers
 		# Doing this separately is actually essential for proper resuming of Dispatcher
 		# if it gets interrupted
-		for qi in self.db.query(Queue).filter(Queue.status=='RENDERING').order_by(Queue.date).all():
-			status_handlers[qi.status](qi)
+		for rqi in db.query(Queue).filter(Queue.status=='RENDERING').order_by(Queue.date).all():
+			self.dbo(' %s' % rqi)
+			status_handlers[rqi.status](rqi)
 		
+		self.dbo('Processing OTHER items:')
 		# Order by Queue.date ensures oldest items are rendered first
-		for qi in self.db.query(Queue).filter(Queue.status!='RENDERING').order_by(Queue.date).all():
-			status_handlers[qi.status](qi)
+		for oqi in db.query(Queue).filter(Queue.status!='RENDERING').order_by(Queue.date).all():
+			self.dbo(' %s' % oqi)
+			status_handlers[oqi.status](oqi)
+		
+		db.close()
+		
+		self.dbo('Finished')
 	
 	# Warning: do not call server.wait() in any of these handlers!
 	# The Dispatcher should be mostly stateless such that if it is stopped and
@@ -198,15 +208,19 @@ class DispatcherWorker(ServerObjectThread):
 				# This server is idle! Bag it!
 				del self.renderer_servers[renderer_server_name]
 				
+				scene_path = '%s'%qi.path
+				scene_name = '%s'%qi.status_data
+				
+				qi.status = 'RENDERING'
+				qi.status_data = renderer_server_name
+				
 				# Set up the rendering in another thread, lets get these records
 				# processed ASAP!
 				threading.Thread(
 					target=self.start_server,
-					args=(RC, renderer_server_name, proxy, '%s'%qi.path, '%s'%qi.status_data, qi.haltspp, qi)
+					args=(RC, renderer_server_name, proxy, scene_path, scene_name, qi.haltspp, qi)
 				).start()
-				
-				qi.status = 'RENDERING'
-				qi.status_data = renderer_server_name
+				#self.start_server(RC, renderer_server_name, proxy, scene_path, scene_name, qi.haltspp, qi.id)
 				break
 	
 	def handler_RENDERING(self, qi):
@@ -215,6 +229,7 @@ class DispatcherWorker(ServerObjectThread):
 		has finished or not. If it has finished, remove the scene data from
 		LocalStorage and NetworkStorage, and move the job to the Results table.
 		"""
+		self.dbo('RENDERING handler: %s' % qi)
 		renderer_server_name = qi.status_data
 		if renderer_server_name in self.renderer_servers.keys():
 			RC, proxy = self.renderer_servers[renderer_server_name]
@@ -230,6 +245,7 @@ class DispatcherWorker(ServerObjectThread):
 		else:
 			qi.status = 'ERROR'
 			qi.status_data = 'Renderer.Server disappeared?'
+			self.dbo('Rendering error: %s' % qi)
 	
 	def start_server(self, server, server_name, proxy, net_path, scene_file, haltspp, qi):
 		"""
@@ -246,8 +262,12 @@ class DispatcherWorker(ServerObjectThread):
 				self.log('%s' % qi) # str(qi) contains the error message
 				return
 		
-		server.setHaltSamplesPerPixel(haltspp, False, True) # Set termination criteria
+		# Set termination criteria
+		server.setHaltSamplesPerPixel(haltspp, False, True)
 		
+		# Get Server up to configured speed
+		# 1 is subtracted from GetThreadCouny because parse() already created
+		# a thread for us
 		for i in range(proxy.GetThreadCount()-1):
 			server.addThread()
 		
@@ -255,7 +275,6 @@ class DispatcherWorker(ServerObjectThread):
 		# monitor and clean itself up when the rendering completes
 		proxy.StartMonitoringContext()
 		self.log('Started %s/%s on render server %s' % (net_path, scene_file, server_name))
-	
 
 class DispatcherTimer(TimerThread, ServerObject):
 	"""
@@ -267,9 +286,18 @@ class DispatcherTimer(TimerThread, ServerObject):
 	
 	KICK_PERIOD = LuxFireConfig.Instance().getint('Dispatcher', 'process_interval')
 	
+	_worker_pool = []
+	
 	def kick(self):
 		self.dbo('Kick!')
-		DispatcherWorker(debug=self.debug).start()
+		for old_dwt in self._worker_pool:
+			if not old_dwt.is_alive():
+				self._worker_pool.remove(old_dwt)
+		
+		dwt = DispatcherWorker(debug=self.debug)
+		self._worker_pool.append(dwt)
+		dwt.start()
+		self.dbo('Have %i DispatcherWorkers' % len(self._worker_pool))
 
 class Dispatcher(ServerObject):
 	"""
@@ -279,31 +307,34 @@ class Dispatcher(ServerObject):
 	
 	_Service_Type = 'Dispatcher'
 	
-	db = Database.Session()
-	
 	timer = DispatcherTimer()
 	
 	# All dispatcher methods need to RETURN values, and not use *Log or print
 	# so the the methods are servable over the network
 	
-	def add_queue(self, user_id, path, jobname, haltspp=-1, halttime=-1):
+	def add_queue(self, user_id, jobname, haltspp=-1, halttime=-1):
 		q = Queue()
 		q.user_id = user_id
-		q.path = path
+		q.path = clean_file_name( os.path.join('%i'%user_id, jobname) )
 		q.jobname = jobname
 		q.haltspp = haltspp
 		q.halttime = halttime
 		q.date = datetime.datetime.now()
 		q.status = 'NEW'
-		self.db.add(q)
-		# Using list_queue causes a DB commit
-		return self.list_queue()[0]
+		Database.Session().add(q)
+		return True
+	
+	def finalise_queue(self, user_id, jobname):
+		q = Database.Session().query(Queue).options(eagerload('user')).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).one()
+		# If not exactly one q found, exception will be passed back to user
+		q.status = 'PENDING'
+		return True
 	
 	def list_queue(self):
-		return self.db.query(Queue).order_by(desc(Queue.id)).all()
+		return Database.Session().query(Queue).options(eagerload('user')).order_by(desc(Queue.id)).all()
 	
 	def list_results(self):
-		return self.db.query(Result).order_by(desc(Result.id)).all()
+		return Database.Session().query(Result).options(eagerload('user')).order_by(desc(Result.id)).all()
 	
 	def _start(self):
 		"""Start up the server loop thread"""
