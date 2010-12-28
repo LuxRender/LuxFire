@@ -28,13 +28,15 @@
 Dispatcher is a Render Queue/Job manager and dispatcher for Renderer Slaves.
 """
 
-import datetime, os, shutil
+import datetime, glob, os, shutil
 from sqlalchemy.sql.expression import desc
 
 from .. import LuxFireConfig
 from ..Database import Database
 from ..Database.Models.Queue import Queue
 from ..Database.Models.Result import Result
+
+from ..Renderer.Client import RendererGroup
 
 from ..Server import ServerObject, ServerObjectThread
 
@@ -62,6 +64,10 @@ class DispatcherDistributor(ServerObjectThread):
 			if not os.path.exists( in_path ):
 				raise Exception('Data for this item not found on this machine!')
 			
+			lxs_files = glob.glob( os.path.join(in_path, '*.lxs') )
+			if len(lxs_files) == 0:
+				raise Exception('No LXS file found in LocalStorage path %s' % in_path)
+			
 			self.dbo('in_path = "%s"' % in_path)
 			
 			# TODO: this copy mechanism will need to be swapped out depending
@@ -86,13 +92,16 @@ class DispatcherDistributor(ServerObjectThread):
 					shutil.rmtree( out_path )
 				
 				shutil.copytree(in_path, out_path)
-		
+			
+			self.qi.status_data = os.path.basename(lxs_files[0])
+			
 		except Exception as err:
 			self.log('Data copy failed: %s' % err)
 			self.qi.status = 'ERROR'
+			self.qi.status_data = '%s'%err
 			return
 		
-		# Now self.qi.path refers to a point in NetworkStorage
+		# Now self.qi.path refers to a scene file in NetworkStorage
 		self.qi.status = 'READY'
 		self.dbo('Data ready')
 
@@ -100,6 +109,8 @@ class DispatcherWorker(ServerObjectThread):
 	_Service_Type = 'DispatcherWorker'
 	
 	db = Database.Session()
+	
+	renderer_slaves = None
 	
 	def __repr__(self):
 		return '<DispatcherWorker>'
@@ -130,7 +141,15 @@ class DispatcherWorker(ServerObjectThread):
 			'ERROR':		self.handler_NULL,
 		}
 		
-		for qi in self.db.query(Queue).order_by(desc(Queue.id)).all():
+		# Discover Renderer slaves
+		self.renderer_slaves = RendererGroup()
+		
+		# First check up on RENDERING items to see if we can free Renderer.Servers
+		for qi in self.db.query(Queue).filter(Queue.status == 'RENDERING').order_by(Queue.date).all():
+			status_handlers[qi.status](qi)
+		
+		# Order by Queue.date ensures oldest items are rendered first
+		for qi in self.db.query(Queue).filter(~Queue.status.in_(['RENDERING'])).order_by(Queue.date).all():
 			status_handlers[qi.status](qi)
 	
 	def handler_NULL(self, qi):
@@ -153,7 +172,16 @@ class DispatcherWorker(ServerObjectThread):
 		If there are no available slaves, we can safely do nothing here, and
 		wait for the next DispatcherTimer kick.
 		"""
-		pass
+		for renderer_slave_name, (RC, proxy) in self.renderer_slaves.items():
+			if RC.getAttribute('renderer', 'name') == 0:
+				# This slave is idle! Bag it!
+				del self.renderer_slaves[renderer_slave_name]
+				proxy.SetNetworkWD( qi.path )
+				RC.parse(qi.status_data, True) # async parse, we won't wait for it
+				self.log('Started %s/%s on render slave %s' % (qi.path, qi.status_data, renderer_slave_name))
+				qi.status = 'RENDERING'
+				qi.status_data = renderer_slave_name
+				break
 	
 	def handler_RENDERING(self, qi):
 		"""RENDERING action:
@@ -161,7 +189,19 @@ class DispatcherWorker(ServerObjectThread):
 		has finished or not. If it has finished, remove the scene data from
 		LocalStorage and NetworkStorage, and move the job to the Results table.
 		"""
-		pass
+		renderer_slave_name = qi.status_data
+		if renderer_slave_name in self.renderer_slaves.keys():
+			RC, proxy = self.renderer_slaves[renderer_slave_name]
+			if RC.getAttribute('renderer', 'name') == 0:
+				# Rendering must have finished!
+				qi.status = 'ERROR'
+				qi.status_data = 'TODO: Implement Result transfer'
+			else:
+				# Renderer.Server is unavailable for other tasks
+				del self.renderer_slaves[renderer_slave_name]
+		else:
+			qi.status = 'ERROR'
+			qi.status_data = 'Renderer.Server disappeared?'
 
 class DispatcherTimer(TimerThread, ServerObject):
 	"""
@@ -171,7 +211,7 @@ class DispatcherTimer(TimerThread, ServerObject):
 	def __repr__(self):
 		return '<DispatcherTimer>'
 	
-	KICK_PERIOD = 5
+	KICK_PERIOD = LuxFireConfig.Instance().getint('Dispatcher', 'process_interval')
 	
 	def kick(self):
 		self.dbo('Kick!')
@@ -201,7 +241,9 @@ class Dispatcher(ServerObject):
 		q.halttime = halttime
 		q.date = datetime.datetime.now()
 		q.status = 'NEW'
-		return self.db.add(q)
+		self.db.add(q)
+		# Using list_queue causes a DB commit
+		return self.list_queue()[0]
 	
 	def list_queue(self):
 		return self.db.query(Queue).order_by(desc(Queue.id)).all()

@@ -56,9 +56,10 @@ class Queue(ModelBase):
 	jobname = Column(String(128), nullable=False)
 	date = Column(DateTime(), nullable=False)
 	status = Column(Enum(*QueueStatuses), nullable=False)
+	status_data = Column(Text(), nullable=True)
 	user_id = Column(Integer(12), ForeignKey('users.id'))
 	
 	user = relationship(User, backref=backref('queue', order_by=id))
 	
 	def __repr__(self):
-		return "<Queue('%s','%s', %s)>" % (self.user.email, self.jobname, self.status)
+		return "<Queue('%s','%s', %s:%s)>" % (self.user.email, self.jobname, self.status, self.status_data)

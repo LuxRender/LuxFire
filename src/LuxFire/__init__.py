@@ -55,6 +55,9 @@ DefaultConfig = {
 		'darwin': '/Volumes/Network_Drive/LuxFire',
 		'windows': 'N:/LuxFire'
 	},
+	'Dispatcher': {
+		'process_interval': 5
+	}
 }
 
 class LuxFireConfig(configparser.SafeConfigParser):

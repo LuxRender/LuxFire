@@ -32,6 +32,7 @@ Renderer.Client is a local proxy for a remote Renderer.Server context.
 import Pyro
 
 from ..Client import ListLuxFireGroup, ServerLocator
+from . import RendererLog
 
 class RemoteCallable(object):
 	'''
@@ -104,9 +105,12 @@ def RendererGroup():
 	if len(LuxSlavesNames) > 0:
 		slaves = {}
 		for LN in LuxSlavesNames:
-			RS = ServerLocator.get_by_name(LN)
-			LS = RendererClient(RS)
-			slaves[LN] = (LS, RS)
+			try:
+				RS = ServerLocator.get_by_name(LN)
+				LS = RendererClient(RS)
+				slaves[LN] = (LS, RS)
+			except Exception as err:
+				RendererLog('Error with remote renderer %s: %s' % (LN, err))
 		
 		return slaves
 	else:

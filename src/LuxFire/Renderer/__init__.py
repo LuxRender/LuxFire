@@ -27,12 +27,14 @@
 """
 Renderer represents an instance of the LuxRender Renderer Context.
 """
+import os
 
 # LuxRender imports
 from LuxRender import LuxLog
 
 # LuxFire imports 
 from ..Server import ServerObject
+from .. import LuxFireConfig
 
 def RendererLog(message):
 	LuxLog(message, module_name='LuxFire.Renderer')
@@ -73,6 +75,14 @@ class Renderer(ServerObject):
 		self._lux_context.exit()
 		self._lux_context.wait()
 		self._lux_context.cleanup()
+	
+	def SetNetworkWD(self, path):
+		# We need to start the server in the NetworkStorage location, if possible
+		cfg = LuxFireConfig.Instance()
+		
+		if cfg.get('NetworkStorage', 'type') == 'mounted_filesystem':
+			os.chdir( os.path.join(cfg.NetworkStorage(), path) )
+			self.dbo('Set working directory: %s' % cfg.NetworkStorage())
 	
 	def get_context_methods(self):
 		'''

@@ -74,6 +74,7 @@ class ServerLocator(object):
 			return self.ns.list(group)
 
 # Turn the class definition into a global instance
+# TODO: change this so that importing this module doesn't require a running NS
 ServerLocator = ServerLocator()
 
 def ListLuxFireGroup(grp='Renderer'):
