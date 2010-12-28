@@ -56,7 +56,10 @@ DefaultConfig = {
 		'windows': 'N:/LuxFire'
 	},
 	'Dispatcher': {
-		'process_interval': 5
+		'process_interval': '5'
+	},
+	'Renderer': {
+		'threads_per_server': '4'
 	}
 }
 

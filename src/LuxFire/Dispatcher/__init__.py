@@ -25,10 +25,10 @@
 # ***** END GPL LICENCE BLOCK *****
 #
 """
-Dispatcher is a Render Queue/Job manager and dispatcher for Renderer Slaves.
+Dispatcher is a Render Queue/Job manager and dispatcher for Renderer.Servers.
 """
 
-import datetime, glob, os, shutil
+import datetime, glob, os, shutil, threading, time
 from sqlalchemy.sql.expression import desc
 
 from .. import LuxFireConfig
@@ -49,6 +49,9 @@ class DispatcherDistributor(ServerObjectThread):
 	_Service_Type = 'DispatcherDistributor'
 	
 	qi = None
+	
+	#@class var
+	path_create_lock = threading.Lock()
 	
 	def __repr__(self):
 		return '<DispatcherDistributor %s>' % self.qi
@@ -82,8 +85,11 @@ class DispatcherDistributor(ServerObjectThread):
 				
 				# if writing to NetworkStorage is going to fail, lets find out here first
 				network_user_dir = os.path.join( cfg.NetworkStorage(), '%i'%self.qi.user.id )
-				if not os.path.exists( network_user_dir ):
-					os.makedirs(network_user_dir)
+				
+				# Using a lock here prevents thread race in makedirs()
+				with DispatcherDistributor.path_create_lock:
+					if not os.path.exists( network_user_dir ):
+						os.makedirs(network_user_dir)
 				
 				if os.path.exists( out_path ):
 					# copytree doesn't like the destination to exist, raise a
@@ -110,7 +116,7 @@ class DispatcherWorker(ServerObjectThread):
 	
 	db = Database.Session()
 	
-	renderer_slaves = None
+	renderer_servers = None
 	
 	def __repr__(self):
 		return '<DispatcherWorker>'
@@ -141,16 +147,23 @@ class DispatcherWorker(ServerObjectThread):
 			'ERROR':		self.handler_NULL,
 		}
 		
-		# Discover Renderer slaves
-		self.renderer_slaves = RendererGroup()
+		# Discover Renderer servers
+		self.renderer_servers = RendererGroup()
 		
-		# First check up on RENDERING items to see if we can free Renderer.Servers
-		for qi in self.db.query(Queue).filter(Queue.status == 'RENDERING').order_by(Queue.date).all():
+		# Process the RENDERING items first, so that we can free up Renderer.Servers
+		# Doing this separately is actually essential for proper resuming of Dispatcher
+		# if it gets interrupted
+		for qi in self.db.query(Queue).filter(Queue.status=='RENDERING').order_by(Queue.date).all():
 			status_handlers[qi.status](qi)
 		
 		# Order by Queue.date ensures oldest items are rendered first
-		for qi in self.db.query(Queue).filter(~Queue.status.in_(['RENDERING'])).order_by(Queue.date).all():
+		for qi in self.db.query(Queue).filter(Queue.status!='RENDERING').order_by(Queue.date).all():
 			status_handlers[qi.status](qi)
+	
+	# Warning: do not call server.wait() in any of these handlers!
+	# The Dispatcher should be mostly stateless such that if it is stopped and
+	# restarted (or if there is more than one Dispatcher running on the network),
+	# everything picks up where it left off.
 	
 	def handler_NULL(self, qi):
 		"""NULL action, do nothing with this item"""
@@ -168,40 +181,75 @@ class DispatcherWorker(ServerObjectThread):
 	
 	def handler_READY(self, qi):
 		"""READY action:
-		Find an available rendering slave and start the rendering process.
-		If there are no available slaves, we can safely do nothing here, and
+		Find an available rendering server and start the rendering process;
+		change status to RENDERING.
+		
+		If there are no available servers, we can safely do nothing here, and
 		wait for the next DispatcherTimer kick.
 		"""
-		for renderer_slave_name, (RC, proxy) in self.renderer_slaves.items():
+		for renderer_server_name, (RC, proxy) in self.renderer_servers.items():
 			if RC.getAttribute('renderer', 'name') == 0:
-				# This slave is idle! Bag it!
-				del self.renderer_slaves[renderer_slave_name]
-				proxy.SetNetworkWD( qi.path )
-				RC.parse(qi.status_data, True) # async parse, we won't wait for it
-				self.log('Started %s/%s on render slave %s' % (qi.path, qi.status_data, renderer_slave_name))
+				# This server is idle! Bag it!
+				del self.renderer_servers[renderer_server_name]
+				
+				# Set up the rendering in another thread, lets get these records
+				# processed ASAP!
+				threading.Thread(
+					target=self.start_server,
+					args=(RC, renderer_server_name, proxy, '%s'%qi.path, '%s'%qi.status_data, qi.haltspp, qi)
+				).start()
+				
 				qi.status = 'RENDERING'
-				qi.status_data = renderer_slave_name
+				qi.status_data = renderer_server_name
 				break
 	
 	def handler_RENDERING(self, qi):
 		"""RENDERING action:
-		Check up on the slave which is rendering this scene and see if it
+		Check up on the server which is rendering this scene and see if it
 		has finished or not. If it has finished, remove the scene data from
 		LocalStorage and NetworkStorage, and move the job to the Results table.
 		"""
-		renderer_slave_name = qi.status_data
-		if renderer_slave_name in self.renderer_slaves.keys():
-			RC, proxy = self.renderer_slaves[renderer_slave_name]
+		renderer_server_name = qi.status_data
+		if renderer_server_name in self.renderer_servers.keys():
+			RC, proxy = self.renderer_servers[renderer_server_name]
 			if RC.getAttribute('renderer', 'name') == 0:
 				# Rendering must have finished!
 				qi.status = 'ERROR'
 				qi.status_data = 'TODO: Implement Result transfer'
 			else:
-				# Renderer.Server is unavailable for other tasks
-				del self.renderer_slaves[renderer_slave_name]
+				# Renderer.Server is busy, print out what it's doing
+				self.dbo('%s: %s' % (renderer_server_name, RC.printableStatistics(True)))
+				# Make server unavailable for further actions
+				del self.renderer_servers[renderer_server_name]
 		else:
 			qi.status = 'ERROR'
 			qi.status_data = 'Renderer.Server disappeared?'
+	
+	def start_server(self, server, server_name, proxy, net_path, scene_file, haltspp, qi):
+		"""
+		This method runs as a thread because of the while..sleep loop
+		"""
+		proxy.SetNetworkWD( net_path )
+		server.parse(scene_file, True) # async parse
+		
+		while server.statistics('sceneIsReady') != 1.0:
+			time.sleep(0.3)
+			if not server.parseSuccessful():
+				qi.status = 'ERROR'
+				qi.status_data = 'Bad scene file (parse error)'
+				self.log('%s' % qi) # str(qi) contains the error message
+				return
+		
+		server.setHaltSamplesPerPixel(haltspp, False, True) # Set termination criteria
+		
+		for i in range(proxy.GetThreadCount()-1):
+			server.addThread()
+		
+		# StartMonitoringContext is essential so that the Renderer.Server can
+		# monitor and clean itself up when the rendering completes
+		proxy.StartMonitoringContext()
+		self.log('Started %s/%s on render server %s' % (net_path, scene_file, server_name))
+	
 
 class DispatcherTimer(TimerThread, ServerObject):
 	"""

@@ -27,7 +27,7 @@
 """
 Renderer represents an instance of the LuxRender Renderer Context.
 """
-import os
+import os, threading, time
 
 # LuxRender imports
 from LuxRender import LuxLog
@@ -83,6 +83,26 @@ class Renderer(ServerObject):
 		if cfg.get('NetworkStorage', 'type') == 'mounted_filesystem':
 			os.chdir( os.path.join(cfg.NetworkStorage(), path) )
 			self.dbo('Set working directory: %s' % cfg.NetworkStorage())
+	
+	def GetThreadCount(self):
+		return LuxFireConfig.Instance().getint('Renderer', 'threads_per_server')
+	
+	def StartMonitoringContext(self):
+		threading.Thread(target=self._context_monitor).start()
+	
+	def _context_monitor(self):
+		rendering = True
+		while rendering:
+			if self._lux_context.statistics('filmIsReady') == 1.0 or \
+			   self._lux_context.statistics('terminated') == 1.0 or \
+			   self._lux_context.statistics('enoughSamples') == 1.0:
+				self._lux_context.exit()
+				self._lux_context.wait()
+				self._lux_context.cleanup()
+				rendering = False
+				self.dbo('Rendering finished!')
+			else:
+				time.sleep(5)
 	
 	def get_context_methods(self):
 		'''
