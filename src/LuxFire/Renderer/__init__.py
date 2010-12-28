@@ -72,9 +72,10 @@ class Renderer(ServerObject):
 		If this server is killed, make sure the Context ends cleanly
 		'''
 		self.dbo('Lux Context exit/wait/cleanup')
-		self._lux_context.exit()
-		self._lux_context.wait()
-		self._lux_context.cleanup()
+		if self._lux_context is not None:
+			self._lux_context.exit()
+			self._lux_context.wait()
+			self._lux_context.cleanup()
 	
 	def SetNetworkWD(self, path):
 		# We need to start the server in the NetworkStorage location, if possible

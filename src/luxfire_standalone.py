@@ -33,9 +33,9 @@ if __name__=='__main__':
 	import optparse
 	parser = optparse.OptionParser(
 		description='All-in-one launcher script for a standalone render queue. '
-		'By default, this script will start a Pyro name server, a LuxFire.Dispatcher.Server '
-		'and a LuxFire.Renderer.Server. You can disable any of these with the options '
-		'below.'
+		'By default, this script will start a Pyro name server, a '
+		'LuxFire.Dispatcher.Server and a LuxFire.Renderer.Server. You can '
+		'disable any of these with the options below.'
 	)
 	parser.add_option(
 		'-x',
@@ -102,5 +102,8 @@ if __name__=='__main__':
 		s = Server(debug=options.verbose)
 		s.start(LF_Servers)
 	except ImportError as err:
-		print('Some required component of the LuxFire system was not found: %s' % err)
+		print('A required component of the LuxFire system was not found: %s' % err)
+		print('In order to operate, LuxFire requires python3-sqlalchemy and PyLux.')
+		print('The PyLux module pylux.so or pylux.pyd should be placed inside the')
+		print('LuxRender folder. You can get a PyLux module from http://www.luxrender.net/')
 	
