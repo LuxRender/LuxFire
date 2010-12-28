@@ -45,6 +45,14 @@ class ServerLocator(object):
 	# Pyro Name server
 	ns = None
 	
+	_instance = None
+	
+	@classmethod
+	def Instance(cls):
+		if cls._instance == None:
+			cls._instance = cls()
+		return cls._instance
+	
 	def __init__(self):
 		'''
 		Locate the NS
@@ -73,13 +81,9 @@ class ServerLocator(object):
 		if self.ns is not None:
 			return self.ns.list(group)
 
-# Turn the class definition into a global instance
-# TODO: change this so that importing this module doesn't require a running NS
-ServerLocator = ServerLocator()
-
 def ListLuxFireGroup(grp='Renderer'):
 	try:
-		LuxSlaves = ServerLocator.get_list('LuxFire.%s'%grp)
+		LuxSlaves = ServerLocator.Instance().get_list('LuxFire.%s'%grp)
 		return LuxSlaves
 	except Pyro.errors.NamingError as err:
 		print('LuxFire Pyro NS group Lux.%s not found - No LuxFire components are running ?'%grp)

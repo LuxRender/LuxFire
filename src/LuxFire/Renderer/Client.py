@@ -106,7 +106,7 @@ def RendererGroup():
 		slaves = {}
 		for LN in LuxSlavesNames:
 			try:
-				RS = ServerLocator.get_by_name(LN)
+				RS = ServerLocator.Instance().get_by_name(LN)
 				LS = RendererClient(RS)
 				slaves[LN] = (LS, RS)
 			except Exception as err:

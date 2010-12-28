@@ -41,7 +41,7 @@ if __name__ == '__main__':
 			slaves = []
 			print('------------------------------------------------------------------')
 			for LN, i in LuxSlavesNames.items():
-				RemoteRenderer = RendererClient(ServerLocator.get_by_name(LN))
+				RemoteRenderer = RendererClient(ServerLocator.Instance().get_by_name(LN))
 				ss = RemoteRenderer.printableStatistics(True)
 				if ss == '':
 					ss = 'Idle'

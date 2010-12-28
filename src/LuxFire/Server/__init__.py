@@ -144,7 +144,9 @@ class ServerThread(threading.Thread, ServerObject):
 	def setup(self, service, name):
 		self.service = service
 		self.name = name
-		self.daemon = Pyro.core.Daemon()
+		self.daemon = Pyro.core.Daemon(
+			host = LuxFireConfig.Instance().get('LuxFire', 'bind')
+		)
 		self.so = self.daemon.register(self.service)
 	
 	def run(self):
