@@ -141,12 +141,10 @@ class ServerThread(threading.Thread, ServerObject):
 	def __repr__(self):
 		return '<ServerThread %s>' % self.service
 	
-	def setup(self, service, name):
+	def setup(self, bind_addr, service, name):
 		self.service = service
 		self.name = name
-		self.daemon = Pyro.core.Daemon(
-			host = LuxFireConfig.Instance().get('LuxFire', 'bind')
-		)
+		self.daemon = Pyro.core.Daemon( bind_addr )
 		self.so = self.daemon.register(self.service)
 	
 	def run(self):
@@ -213,7 +211,7 @@ class Server(ServerObject):
 	
 	def new_server_thread(self, service, name):
 		st = ServerThread()
-		st.setup(service, name)
+		st.setup(self.bind, service, name)
 		self.server_threads[name] = st
 		st.start()
 	
