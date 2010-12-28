@@ -29,7 +29,8 @@ LuxFire.Database manages the database connection for persistent data storage.
 """
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.pool import StaticPool
 from sqlalchemy.ext.declarative import declarative_base
 ModelBase = declarative_base()
 
@@ -50,6 +51,7 @@ class Database(object):
 		if cls._instance == None or new:
 			cls._instance = create_engine(
 				LuxFireConfig.Instance().get('LuxFire', 'database'),
+				#poolclass=StaticPool
 			)
 			
 		return cls._instance
@@ -57,10 +59,10 @@ class Database(object):
 	@classmethod
 	def Session(cls):
 		if cls._sessionmaker == None:
-			cls._sessionmaker = sessionmaker(
+			cls._sessionmaker = scoped_session(sessionmaker(
 				bind=cls.Instance(),
 				autocommit=True,
 				autoflush=True
-			)
+			))
 		
 		return cls._sessionmaker()

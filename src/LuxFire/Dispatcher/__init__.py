@@ -117,6 +117,9 @@ class DispatcherWorker(ServerObjectThread):
 	
 	renderer_servers = None
 	
+	_render_start_threads = []
+	_distributor_threads = []
+	
 	def __repr__(self):
 		return '<DispatcherWorker>'
 	
@@ -158,22 +161,41 @@ class DispatcherWorker(ServerObjectThread):
 		
 		db = Database.Session()
 		
+		limit = LuxFireConfig.Instance().getint('Dispatcher', 'max_items_per_worker')
+		
+		# Only grab a few records at a time
+		self.dbo('Fetching %i items' % limit)
+		aqi = db.query(Queue).order_by(Queue.date).limit(limit).all()
+		
 		self.dbo('Processing RENDERING items:')
 		# Process the RENDERING items first, so that we can free up Renderer.Servers
 		# Doing this separately is actually essential for proper resuming of Dispatcher
 		# if it gets interrupted
-		for rqi in db.query(Queue).filter(Queue.status=='RENDERING').order_by(Queue.date).all():
+		for rqi in aqi:
+			if rqi.status != 'RENDERING': continue
 			self.dbo(' %s' % rqi)
 			status_handlers[rqi.status](rqi)
 		
+		db.flush()
+		
 		self.dbo('Processing OTHER items:')
 		# Order by Queue.date ensures oldest items are rendered first
-		for oqi in db.query(Queue).filter(Queue.status!='RENDERING').order_by(Queue.date).all():
+		for oqi in aqi:
+			if oqi.status == 'RENDERING': continue
 			self.dbo(' %s' % oqi)
 			status_handlers[oqi.status](oqi)
 		
-		db.close()
+		db.flush()
 		
+		# Now we can safely wait for DispatcherDistributors and for Renderer.Servers to start
+		for rst in self._render_start_threads:
+			if rst.is_alive():
+				rst.join()
+		for ddt in self._distributor_threads:
+			if ddt.is_alive():
+				ddt.join()
+		
+		db.close()
 		self.dbo('Finished')
 	
 	# Warning: do not call server.wait() in any of these handlers!
@@ -193,6 +215,7 @@ class DispatcherWorker(ServerObjectThread):
 		qi.status = 'DISTRIBUTING'
 		dd = DispatcherDistributor(debug=self.debug)
 		dd.qi = qi
+		self._distributor_threads.append(dd)
 		dd.start()
 	
 	def handler_READY(self, qi):
@@ -211,16 +234,18 @@ class DispatcherWorker(ServerObjectThread):
 				scene_path = '%s'%qi.path
 				scene_name = '%s'%qi.status_data
 				
-				qi.status = 'RENDERING'
-				qi.status_data = renderer_server_name
-				
 				# Set up the rendering in another thread, lets get these records
 				# processed ASAP!
-				threading.Thread(
-					target=self.start_server,
-					args=(RC, renderer_server_name, proxy, scene_path, scene_name, qi.haltspp, qi)
-				).start()
-				#self.start_server(RC, renderer_server_name, proxy, scene_path, scene_name, qi.haltspp, qi.id)
+#				rst = threading.Thread(
+#					target=self.start_server,
+#					args=(RC, renderer_server_name, proxy, scene_path, scene_name, qi.haltspp, qi)
+#				)
+#				self._render_start_threads.append(rst)
+#				rst.start()
+				self.start_server(RC, renderer_server_name, proxy, scene_path, scene_name, qi.haltspp, qi)
+				
+				qi.status = 'RENDERING'
+				qi.status_data = renderer_server_name
 				break
 	
 	def handler_RENDERING(self, qi):
@@ -288,16 +313,24 @@ class DispatcherTimer(TimerThread, ServerObject):
 	
 	_worker_pool = []
 	
-	def kick(self):
-		self.dbo('Kick!')
+	def _purge_threads(self, join=False):
 		for old_dwt in self._worker_pool:
+			if join: old_dwt.join()
 			if not old_dwt.is_alive():
 				self._worker_pool.remove(old_dwt)
+	
+	def kick(self):
+		self.dbo('Kick!')
+		self._purge_threads()
 		
 		dwt = DispatcherWorker(debug=self.debug)
 		self._worker_pool.append(dwt)
 		dwt.start()
 		self.dbo('Have %i DispatcherWorkers' % len(self._worker_pool))
+	
+	def stop(self):
+		super().stop()
+		self._purge_threads()
 
 class Dispatcher(ServerObject):
 	"""
