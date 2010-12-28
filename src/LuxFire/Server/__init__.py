@@ -217,7 +217,7 @@ class Server(ServerObject):
 	
 	def start(self, _so):
 		# First set up bind address
-		Pyro.config.PYRO_HOST = self.bind
+		Pyro.config.HOST = self.bind
 		
 		self.log('Server starting...')
 		
