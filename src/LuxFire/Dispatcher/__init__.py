@@ -31,16 +31,16 @@ Dispatcher is a Render Queue/Job manager and dispatcher for Renderer.Servers.
 import datetime, glob, os, shutil, threading, time
 from sqlalchemy.sql.expression import desc
 
+from LuxRender import LuxLog, TimerThread
+import Pyro.errors
+
 from .. import LuxFireConfig
+from ..Client import ClientException
 from ..Database import Database
 from ..Database.Models.Queue import Queue
 from ..Database.Models.Result import Result
-
 from ..Renderer.Client import RendererGroup
-
 from ..Server import ServerObject, ServerObjectThread
-
-from LuxRender import LuxLog, TimerThread
 
 def DispatcherLog(message):
 	LuxLog(message, module_name='LuxFire.Dispatcher')
@@ -147,8 +147,14 @@ class DispatcherWorker(ServerObjectThread):
 			'ERROR':		self.handler_NULL,
 		}
 		
-		# Discover Renderer servers
-		self.renderer_servers = RendererGroup()
+		try:
+			# Discover Renderer servers. This will fail if the nameserver cannot
+			# be found, in which case, we're not going to be able to Dispatch any
+			# work!
+			self.renderer_servers = RendererGroup()
+		except (ClientException, Pyro.errors.PyroError):
+			self.renderer_servers = []
+			self.log('Pyro name server not found, cannot Dispatch any work!')
 		
 		# Process the RENDERING items first, so that we can free up Renderer.Servers
 		# Doing this separately is actually essential for proper resuming of Dispatcher
