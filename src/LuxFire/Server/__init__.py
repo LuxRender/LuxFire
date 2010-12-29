@@ -124,7 +124,7 @@ class ServerObjectThread(threading.Thread, ServerObject):
 		threading.Thread.__init__(self)
 		ServerObject.__init__(self, debug)
 
-class ServerThread(threading.Thread, ServerObject):
+class ServerThread(ServerObjectThread):
 	'''
 	Pyro service thread
 	

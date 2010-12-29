@@ -75,32 +75,53 @@ if __name__=='__main__':
 		from LuxFire import LuxFireConfig, LuxFireLog
 		cfg = LuxFireConfig.Instance()
 		
+		# Using multiprocess.Process prevents DB deadlocking when using SQLite
+		# and running multiple servers.
+		import multiprocessing
+		LF_Servers = []
+		
 		if options.nameserver:
 			import Pyro, threading
-			ns_kwargs = {
-				'host': cfg.get('LuxFire', 'bind'),
-				'enableBroadcast': True
-			}
-			NS = threading.Thread(
-				target=Pyro.naming.startNSloop, kwargs=ns_kwargs,
-			)
+			
+			def start_ns():
+				try:
+					import socket
+					Pyro.naming.startNSloop(host=cfg.get('LuxFire', 'bind'), enableBroadcast=True)
+				except socket.error as err:
+					LuxFireLog('Error running nameserver: %s' % err)
+			
+			NS = threading.Thread(target=start_ns)
 			NS.setDaemon(True)	# Won't join() on exit
 			NS.start()
 		
 		from LuxFire.Server import Server
-		LF_Servers = []
+		
+		LuxFireLog('Press CTRL-C to stop')
 		
 		if options.renderer:
 			from LuxFire.Renderer import Renderer
-			LF_Servers.append(Renderer)
+			rs = Server(debug=options.verbose)
+			rs_proc = multiprocessing.Process(
+				target=rs.start,
+				args=([Renderer],)
+			)
+			LF_Servers.append(rs_proc)
+			rs_proc.start()
 		
 		if options.dispatcher:
 			from LuxFire.Dispatcher import Dispatcher
-			LF_Servers.append(Dispatcher)
+			ds = Server(debug=options.verbose)
+			ds_proc = multiprocessing.Process(
+				target=ds.start,
+				args=([Dispatcher],)
+			)
+			LF_Servers.append(ds_proc)
+			ds_proc.start()
 		
-		LuxFireLog('Press CTRL-C to stop')
-		s = Server(debug=options.verbose)
-		s.start(LF_Servers)
+		# Wait for each child process to quit
+		for server_process in LF_Servers:
+			server_process.join()
+		
 	except ImportError as err:
 		print('A required component of the LuxFire system was not found: %s' % err)
 		print('In order to operate, LuxFire requires python3-sqlalchemy and PyLux.')
