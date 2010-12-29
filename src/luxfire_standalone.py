@@ -77,11 +77,11 @@ if __name__=='__main__':
 		
 		# Using multiprocess.Process prevents DB deadlocking when using SQLite
 		# and running multiple servers.
-		import multiprocessing
+		import multiprocessing, os, threading, signal
 		LF_Servers = []
 		
 		if options.nameserver:
-			import Pyro, threading
+			import Pyro
 			
 			def start_ns():
 				try:
@@ -118,9 +118,19 @@ if __name__=='__main__':
 			LF_Servers.append(ds_proc)
 			ds_proc.start()
 		
-		# Wait for each child process to quit
-		for server_process in LF_Servers:
-			server_process.join()
+		evt = threading.Event()
+		def sighandler_INT(sig, frame):
+			evt.set()
+		signal.signal(signal.SIGINT, sighandler_INT)
+		try:
+			while not evt.is_set():
+				evt.wait(10)
+		except KeyboardInterrupt:
+			evt.set()
+		finally:
+			for server_process in LF_Servers:
+				os.kill(server_process.pid, signal.SIGINT)
+				server_process.join()
 		
 	except ImportError as err:
 		print('A required component of the LuxFire system was not found: %s' % err)

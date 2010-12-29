@@ -30,7 +30,7 @@ objects across the network.
 """
 
 # System imports
-import threading, time
+import signal, threading, time
 
 # Non-System imports
 import Pyro
@@ -205,6 +205,10 @@ class Server(ServerObject):
 	
 	def __init__(self, debug=False):
 		self.SetDebug(debug)
+		signal.signal(signal.SIGINT, self._sighandler_INT)
+	
+	def _sighandler_INT(self, sig, frame):
+		self.run.set()
 	
 	def __repr__(self):
 		return '<Server %s~%x>' % (self.bind, id(self))
