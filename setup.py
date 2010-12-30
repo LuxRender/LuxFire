@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf8 -*-
 #
 # ***** BEGIN GPL LICENSE BLOCK *****
 #
@@ -24,13 +25,14 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
-"""
-Python setup/installer script for LuxFire suite.
-"""
 
 from distutils.core import setup
-import os
+from distutils.command.install_data import install_data
+import imp, os
 
+#------------------------------------------------------------------------------ 
+# Helper functions
+#------------------------------------------------------------------------------
 def is_package(path):
 	return (
 		os.path.isdir(path) and
@@ -51,7 +53,38 @@ def find_packages(path, base="" ):
 			packages.update(find_packages(dir, module_name))
 	return packages
 
+class smart_install_data(install_data):
+	def run(self):
+		#need to change self.install_dir to the library dir
+		install_cmd = self.get_finalized_command('install')
+		self.install_dir = getattr(install_cmd, 'install_lib')
+		return install_data.run(self)
+
+def non_python_files(path):
+	""" Return all non-python-file filenames in path """
+	result = []
+	all_results = []
+	module_suffixes = [info[0] for info in imp.get_suffixes()]
+	ignore_dirs = ['cvs']
+	for item in os.listdir(path):
+		name = os.path.join(path, item)
+		if (
+			os.path.isfile(name) and
+			os.path.splitext(item)[1] not in module_suffixes
+			):
+			result.append(name)
+		elif os.path.isdir(name) and item.lower() not in ignore_dirs:
+			all_results.extend(non_python_files(name))
+	if result:
+		all_results.append((path, result))
+	return all_results
+
+
+#------------------------------------------------------------------------------ 
+# LuxFire Setup description
+#------------------------------------------------------------------------------ 
 luxfire_packages = find_packages('src')
+luxfire_data = non_python_files('./src/LuxFire/Web/data')
 
 desc="""
 LuxFire Distributed Rendering System
@@ -75,5 +108,8 @@ setup(
 	
 	package_dir={'': 'src'},
 	py_modules=['luxfire_standalone'],
-	packages=luxfire_packages.keys()
+	packages=luxfire_packages.keys(),
+	
+	data_files=luxfire_data,
+	cmdclass={'install_data':smart_install_data}
 )
