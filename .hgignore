@@ -16,3 +16,5 @@ syntax: regexp
 ^\.settings$
 syntax: glob
 incoming/*
+syntax: regexp
+^MANIFEST$
