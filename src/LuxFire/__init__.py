@@ -61,7 +61,10 @@ DefaultConfig = {
 	},
 	'Renderer': {
 		'threads_per_server': '4'
-	}
+	},
+	'Web': {
+		'port': '9080'
+	},
 }
 
 class LuxFireConfig(configparser.SafeConfigParser):

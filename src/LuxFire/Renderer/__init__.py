@@ -60,7 +60,7 @@ class Renderer(ServerObject):
 		'''
 		ServerObject.__init__(self, debug=debug, name=name)
 		
-		from LuxRender import pylux
+		from LuxRender import pylux	#@UnresolvedImport
 		self._lux_context = pylux.Context( '%x' % id(self) )
 		self._context_methods = dir(self._lux_context)
 	
@@ -112,7 +112,7 @@ class Renderer(ServerObject):
 		return self._context_methods
 	
 	def version(self):
-		return pylux.version()
+		return pylux.version() #@UndefinedVariable
 	
 	def luxcall(self, m, *a, **k):
 		'''

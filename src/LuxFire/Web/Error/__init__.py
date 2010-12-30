@@ -25,28 +25,13 @@
 # ***** END GPL LICENCE BLOCK *****
 #
 """
-The Web package contains the web app user interfaces used to manage the LuxFire
-system, and the built in http server to run it.
+LuxFire.Web error handler
 """
-import os
 
-from LuxRender import LuxLog
+from .. import LuxFireWeb
+from ..bottle import error
 
-from .bottle import Bottle, route, static_file
-
-def WebLog(message):
-	LuxLog(message, module_name='Web')
-
-LuxFireWeb = Bottle()
-LuxFireWeb._static_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'static')
-
-@LuxFireWeb.route('/static/:path#.+#')
-def server_static(path):
-	return static_file(path, root=LuxFireWeb._static_root)
-
-@LuxFireWeb.route('/favicon.ico')
-def server_favicon():
-	return static_file('img/favicon.ico', root=LuxFireWeb._static_root)
-
-# Import routes from sub packages
-from . import Error, User
+@LuxFireWeb.error(404)
+@LuxFireWeb.error(500)
+def error_handler(error):
+	return 'Error: %s' % error

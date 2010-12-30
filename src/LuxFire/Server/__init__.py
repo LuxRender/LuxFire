@@ -243,10 +243,10 @@ class Server(ServerObject):
 			# calling others that are no longer present
 			thread_list = list(self.server_threads.items())
 			thread_list.reverse()
-			for serv, thread in thread_list:
+			for serv, thread in thread_list:	#@UnusedVariable
 				if thread.daemon:
 					thread.daemon.shutdown()
 			
-			for serv, thread in thread_list:
+			for serv, thread in thread_list:	#@UnusedVariable
 				thread.join()
 			self.log('...finished')

@@ -32,7 +32,7 @@ LuxFire components to operate.
 if __name__ == '__main__':
 	import sys
 	try:
-		import sqlalchemy
+		import sqlalchemy	#@UnusedImport
 	except ImportError as err:
 		print('LuxFire.Database.Create startup error: %s' % err)
 		sys.exit(-1)
@@ -92,10 +92,12 @@ if __name__ == '__main__':
 	
 	LuxFireLog('Creating new database...')
 	
-	from .Models.Role import Role
-	from .Models.User import User
-	from .Models.Queue import Queue
-	from .Models.Result import Result
+	from .Models.Role import Role	#@UnusedImport
+	from .Models.User import User	#@UnusedImport
+	from .Models.Queue import Queue	#@UnusedImport
+	from .Models.Result import Result	#@UnusedImport
+	
+	# TODO: create default root user if not exists
 	
 	Database.CreateDatabase(options.verbose)
 	

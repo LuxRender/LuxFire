@@ -263,7 +263,7 @@ class DispatcherWorker(ServerObjectThread):
 		self.dbo('RENDERING handler: %s' % qi)
 		renderer_server_name = qi.status_data
 		if renderer_server_name in self.renderer_servers.keys():
-			RC, proxy = self.renderer_servers[renderer_server_name]
+			RC, proxy = self.renderer_servers[renderer_server_name]	#@UnusedVariable
 			if RC.getAttribute('renderer', 'name') == 0:
 				# Rendering must have finished!
 				qi.status = 'ERROR'
@@ -299,7 +299,7 @@ class DispatcherWorker(ServerObjectThread):
 		# Get Server up to configured speed
 		# 1 is subtracted from GetThreadCouny because parse() already created
 		# a thread for us
-		for i in range(proxy.GetThreadCount()-1):
+		for i in range(proxy.GetThreadCount()-1):	#@UnusedVariable
 			server.addThread()
 		
 		# StartMonitoringContext is essential so that the Renderer.Server can

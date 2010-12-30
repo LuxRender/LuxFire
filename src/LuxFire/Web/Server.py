@@ -25,28 +25,20 @@
 # ***** END GPL LICENCE BLOCK *****
 #
 """
-The Web package contains the web app user interfaces used to manage the LuxFire
-system, and the built in http server to run it.
+Web.Server runs the http server to run the web interface to LuxFire
 """
-import os
 
-from LuxRender import LuxLog
-
-from .bottle import Bottle, route, static_file
-
-def WebLog(message):
-	LuxLog(message, module_name='Web')
-
-LuxFireWeb = Bottle()
-LuxFireWeb._static_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'static')
-
-@LuxFireWeb.route('/static/:path#.+#')
-def server_static(path):
-	return static_file(path, root=LuxFireWeb._static_root)
-
-@LuxFireWeb.route('/favicon.ico')
-def server_favicon():
-	return static_file('img/favicon.ico', root=LuxFireWeb._static_root)
-
-# Import routes from sub packages
-from . import Error, User
+if __name__ == '__main__':
+	from .. import LuxFireConfig
+	from .bottle import run
+	from . import LuxFireWeb, WebLog
+	
+	WebLog('Using static document root: %s' % LuxFireWeb._static_root)
+	
+	
+	cfg = LuxFireConfig.Instance()
+	run(
+		app=LuxFireWeb,
+		host=cfg.get('LuxFire', 'bind'),
+		port=cfg.getint('Web', 'port')
+	)

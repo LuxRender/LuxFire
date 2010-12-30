@@ -63,7 +63,7 @@ class ServerLocator(object):
 		try:
 			self.ns = Pyro.naming.locateNS()
 		except Pyro.errors.NamingError as err:
-			raise ClientException('FATAL ERROR: Cannot find Pyro NameServer')
+			raise ClientException('FATAL ERROR: Cannot find Pyro NameServer: %s' % err)
 	
 	def get_by_name(self, name):
 		'''
@@ -86,6 +86,6 @@ def ListLuxFireGroup(grp='Renderer'):
 		LuxSlaves = ServerLocator.Instance().get_list('LuxFire.%s'%grp)
 		return LuxSlaves
 	except Pyro.errors.NamingError as err:
-		print('LuxFire Pyro NS group Lux.%s not found - No LuxFire components are running ?'%grp)
+		print('LuxFire Pyro NS group Lux.%s not found - No LuxFire components are running ?\n%s'%(grp, err))
 		return []
 
