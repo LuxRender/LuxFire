@@ -24,14 +24,7 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
-
-# Non-system imports
-import wx
-
-class MasterControllerView(wx.Frame):
-	"""
-	The main MasterController application window (mVc)
-	"""
-	
-	def __init__(self, parent):
-		wx.Frame.__init__(self, parent, title="LuxFire Master Controller")
+"""
+The Web package contains the web app user interfaces used to manage the LuxFire
+system, and the built in http server to run it.
+"""
