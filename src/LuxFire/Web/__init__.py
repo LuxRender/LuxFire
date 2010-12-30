@@ -29,24 +29,35 @@ The Web package contains the web app user interfaces used to manage the LuxFire
 system, and the built in http server to run it.
 """
 import os
+import jinja2	#@UnresolvedImport
 
 from LuxRender import LuxLog
 
-from .bottle import Bottle, route, static_file
+from . import bottle
 
 def WebLog(message):
 	LuxLog(message, module_name='Web')
 
-LuxFireWeb = Bottle()
-LuxFireWeb._static_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'static')
+LuxFireWeb = bottle.Bottle()
+LuxFireWeb._data_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
+LuxFireWeb._static_root = os.path.join(LuxFireWeb._data_root, 'static')
+LuxFireWeb._templates_root = os.path.join(LuxFireWeb._data_root, 'templates')
+
+LuxFireWeb._templater = jinja2.Environment(
+	loader=jinja2.FileSystemLoader(LuxFireWeb._templates_root)
+)
 
 @LuxFireWeb.route('/static/:path#.+#')
 def server_static(path):
-	return static_file(path, root=LuxFireWeb._static_root)
+	return bottle.static_file(path, root=LuxFireWeb._static_root)
 
 @LuxFireWeb.route('/favicon.ico')
 def server_favicon():
-	return static_file('img/favicon.ico', root=LuxFireWeb._static_root)
+	return bottle.static_file('img/favicon.ico', root=LuxFireWeb._static_root)
+
+@LuxFireWeb.route('/')
+def server_index():
+	return LuxFireWeb._templater.get_template('main.html').render(greet='World!')
 
 # Import routes from sub packages
 from . import Error, User

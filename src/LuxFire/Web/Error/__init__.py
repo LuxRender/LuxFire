@@ -31,6 +31,7 @@ LuxFire.Web error handler
 from .. import LuxFireWeb
 from ..bottle import error
 
+@LuxFireWeb.error(403)
 @LuxFireWeb.error(404)
 @LuxFireWeb.error(500)
 def error_handler(error):
