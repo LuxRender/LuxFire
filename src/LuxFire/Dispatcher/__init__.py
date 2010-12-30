@@ -168,6 +168,8 @@ class DispatcherWorker(ServerObjectThread):
 			
 			limit = LuxFireConfig.Instance().getint('Dispatcher', 'max_items_per_worker')
 			
+			# TODO: limit = min( len(self.renderer_servers), limit ) ?
+			
 			# Only grab a few records at a time
 			self.dbo('Fetching %i items' % limit)
 			aqi = db.query(Queue).order_by(Queue.date).limit(limit).all()
