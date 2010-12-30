@@ -36,7 +36,7 @@ from LuxRender import LuxLog
 from . import bottle
 
 def WebLog(message):
-	LuxLog(message, module_name='Web')
+	LuxLog(message, module_name='LuxFire.Web')
 
 LuxFireWeb = bottle.Bottle()
 LuxFireWeb._data_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')

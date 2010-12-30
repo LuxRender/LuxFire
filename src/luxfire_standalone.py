@@ -25,8 +25,9 @@
 # ***** END GPL LICENCE BLOCK *****
 #
 """
-The luxfire_standalone script will start a local Pyro NS, Renderer.Server and
-Dispatcher.Server in order to have a complete running system with one command.
+The luxfire_standalone script will start a local Pyro NS, Renderer.Server,
+Dispatcher.Server and Web.Server in order to have a complete running system
+with one command.
 """
 
 if __name__=='__main__':
@@ -60,6 +61,14 @@ if __name__=='__main__':
 		action='store_false',
 		default=True,
 		help='Do not start a LuxFire.Renderer.Server'
+	)
+	parser.add_option(
+		'-w',
+		'--no-webserver',
+		dest='webserver',
+		action='store_false',
+		default=True,
+		help='Do not start a LuxFire.Web.Server'
 	)
 	parser.add_option(
 		'-v',
@@ -117,6 +126,16 @@ if __name__=='__main__':
 			)
 			LF_Servers.append(ds_proc)
 			ds_proc.start()
+		
+		if options.webserver:
+			from LuxFire.Web.Server import LuxFireWebRunArgs, run as web_run
+			LuxFireWebRunArgs['quiet'] = not options.verbose
+			ws_proc = multiprocessing.Process(
+				target=web_run,
+				kwargs=LuxFireWebRunArgs
+			)
+			LF_Servers.append(ws_proc)
+			ws_proc.start()
 		
 		evt = threading.Event()
 		def sighandler_INT(sig, frame):

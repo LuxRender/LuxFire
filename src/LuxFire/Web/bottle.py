@@ -1245,7 +1245,10 @@ class ServerAdapter(object):
 
 	def run(self, handler): # pragma: no cover
 		pass
-		
+	
+	def stop(self):
+		pass
+	
 	def __repr__(self):
 		args = ', '.join(['%s=%s'%(k,repr(v)) for k, v in list(self.options.items())])
 		return "%s(%s)" % (self.__class__.__name__, args)
@@ -1265,14 +1268,21 @@ class FlupFCGIServer(ServerAdapter):
 
 
 class WSGIRefServer(ServerAdapter):
+	srv = None
 	def run(self, handler): # pragma: no cover
 		from wsgiref.simple_server import make_server, WSGIRequestHandler
 		if self.quiet:
 			class QuietHandler(WSGIRequestHandler):
 				def log_request(self, *args, **kw): pass
 			self.options['handler_class'] = QuietHandler
-		srv = make_server(self.host, self.port, handler, **self.options)
-		srv.serve_forever()
+		self.srv = make_server(self.host, self.port, handler, **self.options)
+		try:
+			self.srv.serve_forever()
+		except KeyboardInterrupt:
+			self.srv.shutdown()
+		
+	def stop(self):
+		self.srv.shutdown()
 
 
 class CherryPyServer(ServerAdapter):
@@ -1394,11 +1404,12 @@ def run(app=None, server=WSGIRefServer, host='127.0.0.1', port=8080,
 	if not isinstance(server, ServerAdapter):
 		raise RuntimeError("Server must be a subclass of WSGIAdapter")
 	server.quiet = server.quiet or quiet
+	print("Listening on http://%s:%d/" % (server.host, server.port))
 	if not server.quiet and not os.environ.get('BOTTLE_CHILD'):
 		print("Bottle server starting up (using %s)..." % repr(server))
-		print("Listening on http://%s:%d/" % (server.host, server.port))
 		print("Use Ctrl-C to quit.")
 		print()
+	
 	try:
 		if reloader:
 			interval = min(interval, 1)
@@ -1408,9 +1419,11 @@ def run(app=None, server=WSGIRefServer, host='127.0.0.1', port=8080,
 				_reloader_observer(server, app, interval)
 		else:
 			server.run(app)
-	except KeyboardInterrupt: pass
-	if not server.quiet and not os.environ.get('BOTTLE_CHILD'):
-		print("Shutting down...")
+	except KeyboardInterrupt:
+		server.stop()
+	finally:
+		if not server.quiet and not os.environ.get('BOTTLE_CHILD'):
+			print("Shutting down...")
 
 
 class FileCheckerThread(threading.Thread):
