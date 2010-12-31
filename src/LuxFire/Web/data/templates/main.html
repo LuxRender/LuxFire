@@ -9,30 +9,40 @@
 		<title>LuxFire Administration</title>
 	</head>
 	<body class="ui-widget-content">
-	<div class="container_12" id="layout_header">
+	
+	<div class="container_12" id="layout_header" style="margin-top:12px;margin-bottom:12px;overflow:auto;">
 		<div class="grid_12">
-			<span style="float:left">[LuxFire Logo]</span>
-			<span style="float:right">[LuxRender Logo]</span>
+			<span style="float:left">
+				<img src="/static/img/logos/logo_luxrender.png" alt="LuxRender" />
+			</span>
+			<span style="float:right">
+				<img src="/static/img/logos/logo_luxfire.png" alt="LuxFire" />
+			</span>
 		</div>
 	</div>
-	<div class="container_12" id="layout_main">
+	
+	<div class="container_12" id="layout_main" style="clear:both;">
 		<div class="grid_12" id="main_tabs">
 			<ul>
-				<li><a href="/users">User Management</a></li>
-				<li><a href="/user/jobs">Your Jobs</a></li>
-				<li><a href="/dispatcher">Dispatcher</a></li>
+				<li><a href="/users"><span>User Management</span></a></li>
+				<li><a href="/user/jobs"><span>Your Jobs</span></a></li>
+				<li><a href="/dispatcher"><span>Dispatchers</span></a></li>
+				<li><a href="/renderer"><span>Renderers</span></a></li>
 			</ul>
 		</div>
 	</div>
+	
 	<div class="container_12" id="layout_footer">
-		<div class="grid_12" style="text-align: center">
-			[Footer info]
+		<div class="grid_12" style="text-align: center; color: #444444; font-size: smaller">
+			LuxFire and LuxRender are free software, released under the GPL license.
+			See <a href="http://www.luxrender.net/">www.luxrender.net</a> for more info.
 		</div>
 	</div>
 	
 	<script type="text/javascript">
 		$(function(){
-			$('#main_tabs').tabs({});
+			$('#main_tabs').tabs({
+			});
 		});
 	</script>
 	</body>

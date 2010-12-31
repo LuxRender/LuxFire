@@ -1,0 +1,25 @@
+<h2>{{ dispatcher }}</h2>
+<table id="dispatcher_queue" width="100%">
+	<thead>
+		<tr>
+			<th align="left">ID</th>
+			<th align="left">Date</th>
+			<th align="left">User</th>
+			<th align="left">Job Name</th>
+			<th align="left">Job Path</th>
+			<th align="left">Status</th>
+			<th align="left">Status Message</th>
+		</tr>
+	</thead>
+	{% for q in queue %}
+	<tr>
+		<td>{{ q.id }}</td>
+		<td>{{ q.date }}</td>
+		<td>{{ q.user.email }}</td>
+		<td>{{ q.jobname }}</td>
+		<td>{{ q.path }}</td>
+		<td>{{ q.status }}</td>
+		<td>{{ q.status_data }}</td>
+	</tr>
+	{% endfor %}
+</table>

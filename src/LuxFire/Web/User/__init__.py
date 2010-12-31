@@ -37,12 +37,9 @@ from ...Database.Models.UserSession import UserSession
 from .. import LuxFireWeb
 from ..bottle import request, response, redirect
 
-@LuxFireWeb.route('/user/test')
-def user_test():
-	count = int( request.COOKIES.get('counter', 0) ) #@UndefinedVariable
-	count = '%s'%(count+1)
-	response.set_cookie('counter', count)
-	return count
+@LuxFireWeb.route('/users')
+def user_index():
+	return "[Table]"
 
 def get_user_session():
 	UserSession.delete_old_sessions()
@@ -62,6 +59,10 @@ def user_status():
 		return """Logged in as %s ! <a href="/user/logout">Log out</a>""" % u_session.user.email
 	else:
 		return """Logged out! <a href="/user/login">Log in</a>"""
+
+@LuxFireWeb.route('/user/jobs')
+def user_jobs():
+	return "[Table]"
 
 COOKIE_EXPIRE_DAYS = 7
 

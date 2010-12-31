@@ -1,0 +1,15 @@
+<h2>{{ dispatcher }}</h2>
+<table id="dispatcher_queue" width="100%">
+	<thead>
+		<tr>
+			<th align="left" width="300">Renderer</th>
+			<th align="left">Status</th>
+		</tr>
+	</thead>
+	{% for rn, client, proxy in renderers %}
+	<tr>
+		<td>{{ rn }}</td>
+		<td>{{ client.printableStatistics(True) or 'Idle' }}</td>
+	</tr>
+	{% endfor %}
+</table>

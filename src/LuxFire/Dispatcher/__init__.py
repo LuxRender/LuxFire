@@ -354,7 +354,7 @@ class Dispatcher(ServerObject):
 	def add_queue(self, user_id, jobname, haltspp=-1, halttime=-1):
 		q = Queue()
 		q.user_id = user_id
-		q.path = clean_file_name( os.path.join('%i'%user_id, jobname) )
+		q.path = os.path.join('%i'%user_id, clean_file_name(jobname))
 		q.jobname = jobname
 		q.haltspp = haltspp
 		q.halttime = halttime
