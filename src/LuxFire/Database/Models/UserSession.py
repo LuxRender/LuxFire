@@ -28,32 +28,36 @@
 The Result Model holds information about rendering jobs that have been processed
 by LuxFire.Dispatcher.
 """
+import datetime
 
-from sqlalchemy import Column, DateTime, Enum, Integer, String, Sequence, Text, ForeignKey
+from sqlalchemy import Column, DateTime, Integer, Sequence, Text, ForeignKey
 from sqlalchemy.orm import relationship, backref
 
-from .. import ModelBase
+from .. import DatabaseSession, ModelBase
 from .User import User
 
-ResultStatuses = [
-	'RENDER_COMPLETE',		# Render completed without an error
-	'OFFLINE',				# Job render failed because LuxFire system is offline
-	'SLAVE_FAILURE',		# Job render failed because of a slave error
-	'SCENE_FAILURE',		# Job render failed because of a scene error
-	'NO_CREDIT'				# Job render failed due to lack of credit
-]
-
-class Result(ModelBase):
-	__tablename__ = 'results'
+class UserSession(ModelBase):
+	__tablename__ = 'user_sessions'
 	
-	id = Column(Integer(12), Sequence('result_id_seq'), primary_key=True)
-	path = Column(Text(), nullable=False)
-	jobname = Column(String(128), nullable=False)
-	date = Column(DateTime(), nullable=False)
-	status = Column(Enum(*ResultStatuses), nullable=False)
+	id = Column(Text(32), Sequence('user_sessions_id_seq'), primary_key=True)
 	user_id = Column(Integer(12), ForeignKey('users.id'))
+	expiry = Column(DateTime(), nullable=False)
+	session_data = Column(Text())
 	
-	user = relationship(User, backref=backref('results', order_by=id))
+	# This is the raw session data that gets pickled into the session_data field
+	_data = {
+		'logged_in': False
+	}
+	
+	user = relationship(User, backref=backref('user_sessions', order_by=id))
 	
 	def __repr__(self):
-		return "<Result('%s','%s')>" % (self.user.email, self.jobname)
+		if self.user:
+			return "<UserSession('%s'(%s))>" % (self.user.email, len(self.session_data))
+		else:
+			return "<UserSession()>"
+	
+	@staticmethod
+	def delete_old_sessions():
+		with DatabaseSession() as db:
+			db.query(UserSession).filter(UserSession.expiry<datetime.datetime.now()).delete()

@@ -43,4 +43,24 @@ LuxFireWebRunArgs = {
 }
 
 if __name__ == '__main__':
+	import optparse
+	parser = optparse.OptionParser(
+		prog='LuxFire.Web.Server',
+		description='Run the LuxFire.Web.Server for LuxFire system administration'
+	)
+	parser.add_option(
+		'-v',
+		'--verbose',
+		action='store_true',
+		dest='verbose',
+		default=False,
+		help='Show more output'
+	)
+	(options, args) = parser.parse_args()
+	LuxFireWebRunArgs['quiet'] = not options.verbose
+	
+	# This adds bottle to the sys path so that default error pages work
+	import sys, os
+	sys.path.insert(0, os.path.join(LuxFireWeb._data_root, os.path.pardir))
+	
 	run(**LuxFireWebRunArgs)

@@ -94,6 +94,7 @@ if __name__ == '__main__':
 	
 	from .Models.Role import Role	#@UnusedImport
 	from .Models.User import User	#@UnusedImport
+	from .Models.UserSession import UserSession	#@UnusedImport
 	from .Models.Queue import Queue	#@UnusedImport
 	from .Models.Result import Result	#@UnusedImport
 	

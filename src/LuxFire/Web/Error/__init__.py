@@ -35,4 +35,4 @@ from ..bottle import error
 @LuxFireWeb.error(404)
 @LuxFireWeb.error(500)
 def error_handler(error):
-	return 'Error: %s' % error
+	return '<pre>Error: %s\n%s</pre>' % (error, error.traceback)

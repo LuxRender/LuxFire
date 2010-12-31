@@ -33,6 +33,8 @@ import jinja2	#@UnresolvedImport
 
 from LuxRender import LuxLog
 
+from ..Database import Database
+
 from . import bottle
 
 def WebLog(message):
@@ -42,6 +44,7 @@ LuxFireWeb = bottle.Bottle()
 LuxFireWeb._data_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
 LuxFireWeb._static_root = os.path.join(LuxFireWeb._data_root, 'static')
 LuxFireWeb._templates_root = os.path.join(LuxFireWeb._data_root, 'templates')
+LuxFireWeb._db = Database.Session()
 
 LuxFireWeb._templater = jinja2.Environment(
 	loader=jinja2.FileSystemLoader(LuxFireWeb._templates_root)
@@ -60,4 +63,4 @@ def server_index():
 	return LuxFireWeb._templater.get_template('main.html').render(greet='World!')
 
 # Import routes from sub packages
-from . import Error, User
+from . import User, Error

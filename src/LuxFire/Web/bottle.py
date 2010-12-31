@@ -1279,7 +1279,7 @@ class WSGIRefServer(ServerAdapter):
 		try:
 			self.srv.serve_forever()
 		except KeyboardInterrupt:
-			self.srv.shutdown()
+			pass #self.srv.shutdown()
 		
 	def stop(self):
 		self.srv.shutdown()
