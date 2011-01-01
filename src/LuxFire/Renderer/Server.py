@@ -28,10 +28,13 @@
 Renderer.Server exposes a LuxRender Context on the LuxFire network.
 """
 
-if __name__ == '__main__':
+def renderer_serve():
 	from ..Server import Server
 	
 	from . import Renderer
 	
 	s = Server(debug=True)
 	s.start([Renderer])
+
+if __name__=='__main__':
+	renderer_serve()

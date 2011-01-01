@@ -28,10 +28,13 @@
 Dispatcher.Server exposes a Dispatcher on the LuxFire network.
 """
 
-if __name__ == '__main__':
+def dispatcher_serve():
 	from ..Server import Server
 	
 	from . import Dispatcher
 	
 	s = Server(debug=True)
 	s.start([Dispatcher])
+
+if __name__ == '__main__':
+	dispatcher_serve()

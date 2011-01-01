@@ -103,39 +103,31 @@ if __name__=='__main__':
 			NS.setDaemon(True)	# Won't join() on exit
 			NS.start()
 		
-		from LuxFire.Server import Server
-		
 		LuxFireLog('Press CTRL-C to stop')
 		
 		if options.renderer:
-			from LuxFire.Renderer import Renderer
-			rs = Server(debug=options.verbose)
+			from LuxFire.Renderer.Server import renderer_serve
 			rs_proc = multiprocessing.Process(
-				target=rs.start,
-				args=([Renderer],)
+				target=renderer_serve
 			)
-			LF_Servers.append(rs_proc)
 			rs_proc.start()
+			LF_Servers.append(rs_proc)
 		
 		if options.dispatcher:
-			from LuxFire.Dispatcher import Dispatcher
-			ds = Server(debug=options.verbose)
+			from LuxFire.Dispatcher.Server import dispatcher_serve
 			ds_proc = multiprocessing.Process(
-				target=ds.start,
-				args=([Dispatcher],)
+				target=dispatcher_serve
 			)
-			LF_Servers.append(ds_proc)
 			ds_proc.start()
+			LF_Servers.append(ds_proc)
 		
 		if options.webserver:
-			from LuxFire.Web.Server import LuxFireWebRunArgs, run as web_run
-			LuxFireWebRunArgs['quiet'] = not options.verbose
+			from LuxFire.Web.Server import web_serve
 			ws_proc = multiprocessing.Process(
-				target=web_run,
-				kwargs=LuxFireWebRunArgs
+				target=web_serve
 			)
-			LF_Servers.append(ws_proc)
 			ws_proc.start()
+			LF_Servers.append(ws_proc)
 		
 		evt = threading.Event()
 		def sighandler_INT(sig, frame):

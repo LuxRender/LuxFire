@@ -28,21 +28,19 @@
 Web.Server runs the http server to run the web interface to LuxFire
 """
 
-from .. import LuxFireConfig
-from .bottle import run
-from . import LuxFireWeb, WebLog
+def web_serve():
+	from .. import LuxFireConfig
+	from .bottle import run
+	from . import LuxFireWeb, WebLog
+	
+	cfg = LuxFireConfig.Instance()
 
-WebLog('Using static document root: %s' % LuxFireWeb._static_root)
-
-cfg = LuxFireConfig.Instance()
-
-LuxFireWebRunArgs = {
-	'app': LuxFireWeb,
-	'host': cfg.get('LuxFire', 'bind'),
-	'port': cfg.getint('Web', 'port'),
-}
-
-if __name__ == '__main__':
+	LuxFireWebRunArgs = {
+		'app': LuxFireWeb,
+		'host': cfg.get('LuxFire', 'bind'),
+		'port': cfg.getint('Web', 'port'),
+	}
+	
 	import optparse
 	parser = optparse.OptionParser(
 		prog='LuxFire.Web.Server',
@@ -63,4 +61,8 @@ if __name__ == '__main__':
 	import sys, os
 	sys.path.insert(0, os.path.join(LuxFireWeb._data_root, os.path.pardir))
 	
+	WebLog('Using static document root: %s' % LuxFireWeb._static_root)
 	run(**LuxFireWebRunArgs)
+
+if __name__ == '__main__':
+	web_serve()
