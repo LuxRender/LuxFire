@@ -28,6 +28,7 @@
 LuxFire.Dispatcher information views
 """
 
+from ...Client import ClientException
 from ...Dispatcher.Client import DispatcherGroup
 
 from .. import LuxFireWeb
@@ -36,7 +37,7 @@ from .. import User
 @LuxFireWeb.route('/dispatcher')
 @User.protected()
 def dispatcher_index():
-	out = ''
+	out = LuxFireWeb._templater.get_template('dispatcher_index.html').render()
 	
 	try:
 		for sn, dispatcher in DispatcherGroup().items():
@@ -45,7 +46,7 @@ def dispatcher_index():
 				dispatcher=sn,
 				queue=queue
 			)
-	except Exception as err:
-		out = '<em>Error: %s</em>' % err
+	except ClientException as err:
+		out += '<div style="clear:both;"><em>Error: %s</em></div>' % err
 	
 	return out

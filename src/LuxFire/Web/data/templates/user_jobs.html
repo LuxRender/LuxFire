@@ -1,0 +1,158 @@
+<button id="user_queue_reload" style="float:right;">Refresh</button>
+<button id="user_queue_new" style="float:right;">New Job</button>
+
+<h2 style="clear:both;">Input Queue</h2>
+{% if user_queue_length > 0 %}
+<table id="user_queue" width="100%">
+	<thead>
+		<tr>
+			<th align="left">ID</th>
+			<th align="left">Date</th>
+			<th align="left">Job Name</th>
+			<th align="left">Job Path</th>
+			<th align="left">Status</th>
+			<th align="left">Status Message</th>
+			<th align="left">Actions</th>
+		</tr>
+	</thead>
+	{% for q in user_queue %}
+	<tr>
+		<td>{{ q.id }}</td>
+		<td>{{ q.date }}</td>
+		<td>{{ q.jobname }}</td>
+		<td>{{ q.path }}</td>
+		<td>{{ q.status }}</td>
+		<td>{{ q.status_data }}</td>
+		<td>
+			{% if q.status == 'NEW' %}<button id="uqu_{{ q.id }}" class="user_queue_upload">Upload files</button>{% endif %}
+			{% if q.status == 'NEW' %}<button id="uqf_{{ q.id }}" class="user_queue_finalise">Submit</button>{% endif %}
+			{% if q.status == 'READY' %}<button id="uqd_{{ q.id }}" class="user_queue_dequeue">Abort</button>{% endif %}
+		</td>
+	</tr>
+	{% endfor %}
+</table>
+{% else %}
+<p><em>None found</em></p>
+{% endif %}
+
+<h2>Results Queue</h2>
+{% if user_results_length > 0 %}
+<table id="user_queue" width="100%">
+	<thead>
+		<tr>
+			<th align="left">ID</th>
+			<th align="left">Date</th>
+			<th align="left">Job Name</th>
+			<th align="left">Job Path</th>
+			<th align="left">Status</th>
+			<th align="left">Status Message</th>
+		</tr>
+	</thead>
+	{% for q in user_results %}
+	<tr>
+		<td>{{ q.id }}</td>
+		<td>{{ q.date }}</td>
+		<td>{{ q.jobname }}</td>
+		<td>{{ q.path }}</td>
+		<td>{{ q.status }}</td>
+		<td>-</td>
+	</tr>
+	{% endfor %}
+</table>
+{% else %}
+<p><em>None found</em></p>
+{% endif %}
+
+<script>
+$(function(){
+	function reload_user_queue()
+	{
+		$('#user_queue').parent().load(
+			'/user/jobs'
+		);
+	}
+	
+	$('#user_queue_new').button({
+		icons: {
+			primary: 'ui-icon-plus'
+		}
+	}).click(function()
+	{
+		
+		$(this).blur();
+		return false;
+	});
+	
+	$('#user_queue_reload').button({
+		icons: {
+			primary: 'ui-icon-arrowrefresh-1-e'
+		}
+	}).click(function()
+	{
+		reload_user_queue();
+		$(this).blur();
+		return false;
+	});
+	
+	$('.user_queue_upload').button({
+		icons: {
+			primary: 'ui-icon-document'
+		}
+	}).click(function()
+	{
+		
+		$(this).blur();
+		return false;
+	});
+	$('.user_queue_finalise').button({
+		icons: {
+			primary: 'ui-icon-check'
+		}
+	}).click(function()
+	{
+		$.post(
+			'/user/queue_finalise',
+			{
+				q_id: $(this).attr('id').replace('uqf_','')
+			},
+			function(data)
+			{
+				if (data.error)
+					show_message(data.error);
+				else
+					reload_user_queue();
+			},
+			"json"
+		);
+		reload_user_queue();
+		
+		$(this).blur();
+		return false;
+	});
+	$('.user_queue_dequeue').button({
+		icons: {
+			primary: 'ui-icon-close'
+		}
+	}).click(function()
+	{
+		$.post(
+			'/user/queue_dequeue',
+			{
+				q_id: $(this).attr('id').replace('uqd_','')
+			},
+			function(data)
+			{
+				if (data.error)
+					show_message(data.error);
+				else
+					reload_user_queue();
+			},
+			"json"
+		);
+		reload_user_queue();
+		
+		$(this).blur();
+		return false;
+	});
+});
+</script>

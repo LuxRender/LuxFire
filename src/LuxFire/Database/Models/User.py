@@ -37,6 +37,7 @@ from .. import ModelBase
 
 # Role is needed for relationship
 from .Role import Role
+#from .Queue import Queue
 
 roles_users = Table(
 	'roles_users',

@@ -33,8 +33,7 @@ the LuxRender Context which is being served.
 # Pyro Imports
 import Pyro
 
-from ..Client import ListLuxFireGroup, ServerLocator
-from . import RendererLog
+from ..Client import ListLuxFireGroup, ServerLocator, ClientException
 
 class RemoteCallable(object):
 	'''
@@ -112,12 +111,15 @@ def RendererGroup():
 				LS = RendererClient(RS)
 				slaves[LN] = (LS, RS)
 			except Exception as err:
-				RendererLog('Error with remote renderer %s: %s' % (LN, err))
+				raise ClientException('Error with remote renderer %s: %s' % (LN, err))
 		
 		return slaves
 	else:
-		return {}
+		raise ClientException('No Renderers found')
 
 if __name__ == '__main__':
-	slaves = RendererGroup()
-	print(slaves)
+	try:
+		slaves = RendererGroup()
+		print(slaves)
+	except ClientException as err:
+		print('%s'%err)

@@ -28,6 +28,7 @@
 LuxFire.Renderer information views
 """
 
+from ...Client import ClientException
 from ...Renderer.Client import RendererGroup, RendererClient
 
 from .. import LuxFireWeb
@@ -36,7 +37,7 @@ from .. import User
 @LuxFireWeb.route('/renderer')
 @User.protected()
 def renderer_index():
-	out = ''
+	out = LuxFireWeb._templater.get_template('renderer_index.html').render()
 	
 	try:
 		renderers = []
@@ -47,7 +48,7 @@ def renderer_index():
 		out += LuxFireWeb._templater.get_template('renderer_stats.html').render(
 			renderers=renderers
 		)
-	except Exception as err:
-		out = '<em>Error: %s</em>' % err
+	except ClientException as err:
+		out += '<div style="clear:both;"><em>Error: %s</em></div>' % err
 	
 	return out

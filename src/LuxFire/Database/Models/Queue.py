@@ -33,7 +33,7 @@ from sqlalchemy import Column, DateTime, Enum, Integer, String, Sequence, Text, 
 from sqlalchemy.orm import relationship, backref #@UnresolvedImport
 
 from .. import ModelBase
-from .User import User
+#from .User import User
 
 QueueStatuses = [
 	'NEW',				# User has just created the job
@@ -63,7 +63,7 @@ class Queue(ModelBase):
 	status_data = Column(Text(), nullable=True)
 	user_id = Column(Integer(12), ForeignKey('users.id'))
 	
-	user = relationship(User, backref=backref('queue', order_by=id))
+	user = relationship("User", backref=backref('queue', order_by=id))
 	
 	def __repr__(self):
 		return "<Queue('%s','%s', %s:%s)>" % (self.user.email, self.jobname, self.status, self.status_data)

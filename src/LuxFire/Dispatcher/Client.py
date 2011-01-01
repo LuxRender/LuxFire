@@ -28,31 +28,33 @@
 Dispatcher.Client provides access to existing remote Dispatcher.Servers.
 """
 
-from ..Client import ListLuxFireGroup, ServerLocator
+from ..Client import ListLuxFireGroup, ServerLocator, ClientException
 
 def DispatcherGroup():
 	LuxSlavesNames = ListLuxFireGroup('Dispatcher')
+	slaves = {}
 	
 	if len(LuxSlavesNames) > 0:
-		slaves = {}
 		for LN in LuxSlavesNames:
 			try:
 				RS = ServerLocator.Instance().get_by_name(LN)
 				slaves[LN] = RS
+				break	# Only return the first dispatcher
 			except Exception as err:
-				DispatcherLog('Error with remote renderer %s: %s' % (LN, err))
+				raise ClientException('Error with remote dispatcher %s: %s' % (LN, err))
 		
-		return slaves
 	else:
-		return {}
+		raise ClientException('No Dispatchers found')
+	
+	return slaves
 
 if __name__ == '__main__':
-	from . import DispatcherLog
-	slaves = DispatcherGroup()
-	if len(slaves.keys()) == 1:
+	
+	try:
+		slaves = DispatcherGroup()
 		for sn, Dispatcher in slaves.items():
 			pass
 		print('Just one dispatcher found, available as "Dispatcher" variable.')
 		del slaves, sn
-	else:
-		print(slaves)
+	except ClientException as err:
+		print('%s'%err)

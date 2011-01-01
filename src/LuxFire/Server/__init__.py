@@ -208,7 +208,7 @@ class Server(ServerObject):
 		signal.signal(signal.SIGINT, self._sighandler_INT)
 	
 	def _sighandler_INT(self, sig, frame):
-		self.run.set()
+		if self.run is not None: self.run.set()
 	
 	def __repr__(self):
 		return '<Server %s~%x>' % (self.bind, id(self))

@@ -159,10 +159,10 @@ class DispatcherWorker(ServerObjectThread):
 			# be found, in which case, we're not going to be able to Dispatch any
 			# work!
 			self.renderer_servers = RendererGroup()
-		except (ClientException, Pyro.errors.PyroError):
-			self.renderer_servers = []
-			self.log('Pyro name server not found, cannot Dispatch any work!')
-			return
+		except (ClientException, Pyro.errors.PyroError) as err:
+			self.renderer_servers = {}
+			self.log('Cannot Dispatch any new work: %s' % err)
+			# return # don't abort, we can still process/distribute some Queue items
 		
 		with DatabaseSession() as db:
 			
@@ -369,6 +369,18 @@ class Dispatcher(ServerObject):
 			q = db.query(Queue).options(eagerload('user')).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).one()
 			# If not exactly one q found, exception will be passed back to user
 			q.status = 'PENDING'
+			q.status_data = ''
+		return True
+	
+	def abort_queue(self, user_id, jobname):
+		"""Prevent an item from getting to RENDERING STATUS.
+		Can only be done if current status is READY, by changing status back to NEW"""
+		with DatabaseSession() as db:
+			q = db.query(Queue).options(eagerload('user')).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).one()
+			# If not exactly one q found, exception will be passed back to user
+			if q.status == 'READY':
+				q.status = 'NEW'
+				q.status_data = ''
 		return True
 	
 	def list_queue(self):

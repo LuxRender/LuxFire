@@ -1,0 +1,20 @@
+<button id="renderer_stats_reload" style="float:right;">Refresh</button>
+
+<script>
+$(function(){
+	$('#renderer_stats_reload').button({
+		icons: {
+			primary: 'ui-icon-arrowrefresh-1-e'
+		}
+	}).click(function()
+	{
+		$('#renderer_stats').parent().load(
+			'/renderer'
+		);
+		
+		$(this).blur();
+		return false;
+	});
+	
+});
+</script>

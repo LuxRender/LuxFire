@@ -7,9 +7,9 @@
 {% block content %}
 		<div class="grid_12" id="main_tabs">
 			<ul>
-				<li><a href="/users"><span>User Management</span></a></li>
+				<!-- <li><a href="/users"><span>User Management</span></a></li> -->
 				<li><a href="/user/jobs"><span>Your Jobs</span></a></li>
-				<li><a href="/dispatcher"><span>Dispatchers</span></a></li>
+				<li><a href="/dispatcher"><span>Dispatcher</span></a></li>
 				<li><a href="/renderer"><span>Renderers</span></a></li>
 			</ul>
 		</div>
@@ -17,7 +17,9 @@
 {% block tail %}
 	<script type="text/javascript">
 		$(function(){
-			$('#main_tabs').tabs({});
+			$('#main_tabs').tabs({
+				spinner: '<img src="/static/img/loading.gif" alt="Loading" />'
+			});
 		});
 	</script>
 {% endblock %}

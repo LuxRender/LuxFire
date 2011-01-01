@@ -1,0 +1,20 @@
+<button id="dispatcher_queue_reload" style="float:right;">Refresh</button>
+
+<script>
+$(function(){
+	$('#dispatcher_queue_reload').button({
+		icons: {
+			primary: 'ui-icon-arrowrefresh-1-e'
+		}
+	}).click(function()
+	{
+		$('#dispatcher_queue').parent().load(
+			'/dispatcher'
+		);
+		
+		$(this).blur();
+		return false;
+	});
+	
+});
+</script>

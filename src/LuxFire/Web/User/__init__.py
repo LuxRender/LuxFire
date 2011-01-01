@@ -31,9 +31,13 @@ import datetime, hashlib, pickle, random, time
 
 from sqlalchemy.orm import eagerload	#@UnresolvedImport
 
+from ...Client import ClientException
+from ...Database.Models.Queue import Queue
 from ...Database.Models.Role import Role
 from ...Database.Models.User import User, EncryptedPasswordString
 from ...Database.Models.UserSession import UserSession
+
+from ...Dispatcher.Client import DispatcherGroup
 
 from .. import LuxFireWeb
 from ..bottle import request, response, redirect
@@ -44,7 +48,7 @@ def user_redirect(url, message):
 	If this is an AJAX request, just return the message,
 	otherwise perform a redirect().
 	"""
-	if request.header.get('X-Requested-With') == 'XMLHttpRequest':	#@UndefinedVariable
+	if request.is_ajax:
 		return message
 	else:
 		redirect(url)
@@ -94,20 +98,6 @@ def protected(roles=['login']):
 			
 		return wrapper
 	return decorator
-
-@LuxFireWeb.route('/user/status')
-@protected()
-def user_status():
-	u_session = get_user_session()
-	if u_session and u_session._data['logged_in'] == True:
-		return """Logged in as %s ! <a href="/user/logout">Log out</a>""" % u_session.user.email
-	else:
-		return """Logged out! <a href="/user/login">Log in</a>"""
-
-@LuxFireWeb.route('/user/jobs')
-@protected()
-def user_jobs():
-	return "[Table]"
 
 @LuxFireWeb.get('/user/login')
 def user_login_form():
@@ -160,6 +150,65 @@ def user_logout():
 		)
 	redirect('/user/status')
 
+
+@LuxFireWeb.route('/user/jobs')
+@protected()
+def user_jobs():
+	u_session = get_user_session()
+	uq = u_session.user.queue
+	ur = u_session.user.results
+	return LuxFireWeb._templater.get_template('user_jobs.html').render(
+		user_queue=uq,
+		user_queue_length=len(uq),
+		user_results=ur,
+		user_results_length=len(ur)
+	)
+
+@LuxFireWeb.post('/user/queue_finalise')
+@protected()
+def user_queue_finalise():
+	try:
+		dispatchers = DispatcherGroup()	# TODO: handle ClientException
+	except ClientException as err:
+		return {'error': '%s'%err}
+	
+	u_session = get_user_session()
+	db = LuxFireWeb._db
+	
+	# Find the queue item
+	q = db.query(Queue).filter(Queue.id==request.POST.get('q_id')).one()	#@UndefinedVariable
+	
+	# Check that the queue item is in the correct state and belongs to the correct
+	# user and the dispatcher is available.
+	if q.status=='NEW' and q.user_id == u_session.user.id and len(dispatchers) > 0:
+		for dispatcher_name, dispatcher in dispatchers.items():	#@UnusedVariable
+			break
+		dispatcher.finalise_queue(u_session.user.id, q.jobname)
+		
+	return {}
+
+@LuxFireWeb.post('/user/queue_dequeue')
+@protected()
+def user_queue_dequeue():
+	try:
+		dispatchers = DispatcherGroup()	# TODO: handle ClientException
+	except ClientException as err:
+		return {'error': '%s'%err}
+	
+	u_session = get_user_session()
+	db = LuxFireWeb._db
+	
+	# Find the queue item
+	q = db.query(Queue).filter(Queue.id==request.POST.get('q_id')).one()	#@UndefinedVariable
+	
+	# Check that the queue item is in the correct state and belongs to the correct
+	# user and the dispatcher is available.
+	if q.status=='READY' and q.user_id == u_session.user.id and len(dispatchers) > 0:
+		for dispatcher_name, dispatcher in dispatchers.items():	#@UnusedVariable
+			break
+		dispatcher.abort_queue(u_session.user.id, q.jobname)
+		
+	return {}
 
 #------------------------------------------------------------------------------ 
 # All users management
