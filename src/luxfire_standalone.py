@@ -39,7 +39,7 @@ if __name__=='__main__':
 		'disable any of these with the options below.'
 	)
 	parser.add_option(
-		'-x',
+		'-n',
 		'--no-nameserver',
 		dest='nameserver',
 		action='store_false',
