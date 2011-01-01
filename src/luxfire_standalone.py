@@ -90,42 +90,35 @@ if __name__=='__main__':
 		LF_Servers = []
 		
 		if options.nameserver:
-			import Pyro
-			
 			def start_ns():
 				try:
 					import socket
+					import Pyro
 					Pyro.naming.startNSloop(host=cfg.get('LuxFire', 'bind'), enableBroadcast=True)
 				except socket.error as err:
 					LuxFireLog('Error running nameserver: %s' % err)
 			
-			NS = threading.Thread(target=start_ns)
-			NS.setDaemon(True)	# Won't join() on exit
-			NS.start()
+			ns_proc = multiprocessing.Process(target=start_ns)
+			ns_proc.start()
+			LF_Servers.append(ns_proc)
 		
 		LuxFireLog('Press CTRL-C to stop')
 		
 		if options.renderer:
 			from LuxFire.Renderer.Server import renderer_serve
-			rs_proc = multiprocessing.Process(
-				target=renderer_serve
-			)
+			rs_proc = multiprocessing.Process(target=renderer_serve)
 			rs_proc.start()
 			LF_Servers.append(rs_proc)
 		
 		if options.dispatcher:
 			from LuxFire.Dispatcher.Server import dispatcher_serve
-			ds_proc = multiprocessing.Process(
-				target=dispatcher_serve
-			)
+			ds_proc = multiprocessing.Process(target=dispatcher_serve)
 			ds_proc.start()
 			LF_Servers.append(ds_proc)
 		
 		if options.webserver:
 			from LuxFire.Web.Server import web_serve
-			ws_proc = multiprocessing.Process(
-				target=web_serve
-			)
+			ws_proc = multiprocessing.Process(target=web_serve)
 			ws_proc.start()
 			LF_Servers.append(ws_proc)
 		
@@ -140,8 +133,9 @@ if __name__=='__main__':
 			evt.set()
 		finally:
 			for server_process in LF_Servers:
-				os.kill(server_process.pid, signal.SIGINT)
-				server_process.join()
+				if server_process.is_alive():
+					os.kill(server_process.pid, signal.SIGINT)
+					server_process.join()
 		
 	except ImportError as err:
 		print('A required component of the LuxFire system was not found: %s' % err)
