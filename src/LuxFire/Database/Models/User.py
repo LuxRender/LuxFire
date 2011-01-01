@@ -27,9 +27,11 @@
 """
 The User Model holds data about a user who is registered on the LuxFire system.
 """
+import random, hashlib
 
 from sqlalchemy import Table, Column, Integer, String, Sequence, ForeignKey #@UnresolvedImport
 from sqlalchemy.orm import relationship #@UnresolvedImport
+from sqlalchemy.types import TypeDecorator
 
 from .. import ModelBase
 
@@ -43,17 +45,38 @@ roles_users = Table(
 	Column('user_id', Integer(12), ForeignKey('users.id'))
 )
 
+class EncryptedPasswordString(TypeDecorator):
+	@classmethod
+	def hash_get_hexdigest(cls, salt, hash):
+		return hashlib.sha1( ('%s%s' % (salt,hash)).encode() ).hexdigest()
+		
+	@classmethod
+	def hash_password(cls, pw):
+		salt = cls.hash_get_hexdigest(str(random.random()), str(random.random()))
+		hash = cls.hash_get_hexdigest(salt, pw)
+		return '%s$%s' % (salt, hash)
+	
+	@classmethod
+	def check_password(cls, pw, h_pw):
+		salt, hash = h_pw.split('$')
+		return hash == cls.hash_get_hexdigest(salt, pw)
+	
+	impl = String
+	def process_bind_param(self, value, dialect):
+		return self.hash_password(value)
+	
+	def process_result_value(self, value, dialect):
+		return value
+
 class User(ModelBase):
 	__tablename__ = 'users'
 	
 	id = Column(Integer(12), Sequence('user_id_seq'), primary_key=True)
-	email = Column(String(128))
-	password = Column(String(64))
+	email = Column(String(128), unique=True)
+	password = Column(EncryptedPasswordString(90))
 	credits = Column(Integer(10))
 	
 	roles = relationship(Role, secondary=roles_users, backref='users')
-	
-	# TODO: Implement encrypted passwords
 	
 	def __init__(self, email, password, credits):
 		self.email = email

@@ -36,7 +36,7 @@ class Role(ModelBase):
 	__tablename__ = 'roles'
 	
 	id = Column(Integer(12), Sequence('role_id_seq'), primary_key=True)
-	name = Column(String(32))
+	name = Column(String(32), unique=True)
 	description = Column(String(128))
 	
 	def __init__(self, name, description):

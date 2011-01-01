@@ -77,7 +77,7 @@ if __name__ == '__main__':
 	
 	# Use the database connection specified, and save it to config file
 	from .. import LuxFireConfig
-	from . import Database
+	from . import Database, DatabaseSession
 	if options.database:
 		LuxFireConfig.Instance().set('LuxFire', 'database', options.database)
 		# Renew the _instance to force reloading the new configuration
@@ -98,8 +98,14 @@ if __name__ == '__main__':
 	from .Models.Queue import Queue	#@UnusedImport
 	from .Models.Result import Result	#@UnusedImport
 	
-	# TODO: create default root user if not exists
-	
 	Database.CreateDatabase(options.verbose)
+	
+	# Create default user/role data
+	with DatabaseSession() as db:
+		role_login = Role('login', 'User is allowed to log in')
+		root_user = User('root', 'admin', 0)
+		root_user.roles.append(role_login)
+		db.add(role_login)
+		db.add(root_user)
 	
 	LuxFireLog('... done')

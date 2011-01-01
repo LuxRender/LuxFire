@@ -29,7 +29,7 @@ The Queue Model holds data about rendering jobs that are yet to be processed by
 LuxFire.Dispatcher.
 """
 
-from sqlalchemy import Column, DateTime, Enum, Integer, String, Sequence, Text, ForeignKey #@UnresolvedImport
+from sqlalchemy import Column, DateTime, Enum, Integer, String, Sequence, Text, ForeignKey, UniqueConstraint #@UnresolvedImport
 from sqlalchemy.orm import relationship, backref #@UnresolvedImport
 
 from .. import ModelBase
@@ -48,6 +48,10 @@ QueueStatuses = [
 
 class Queue(ModelBase):
 	__tablename__ = 'queue'
+	__table_args__ = (
+		UniqueConstraint('user_id', 'jobname'),
+		{}
+	)
 	
 	id = Column(Integer(12), Sequence('queue_id_seq'), primary_key=True)
 	haltspp = Column(Integer(8), default=-1)

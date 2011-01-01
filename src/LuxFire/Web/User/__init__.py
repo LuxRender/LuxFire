@@ -31,7 +31,8 @@ import datetime, hashlib, pickle, random, time
 
 from sqlalchemy.orm import eagerload	#@UnresolvedImport
 
-from ...Database.Models.User import User
+from ...Database.Models.Role import Role
+from ...Database.Models.User import User, EncryptedPasswordString
 from ...Database.Models.UserSession import UserSession
 
 from .. import LuxFireWeb
@@ -93,15 +94,15 @@ def user_login_process():
 			db = LuxFireWeb._db
 			user = db.query(User).filter(User.email==email).one()
 			
-			# TODO: Implement encrypted passwords
 			# TODO: User Role check for log in permission
-			if not (user and user.password == password):
+			#  and user.roles.has(Role.name=='login')
+			if not (user and EncryptedPasswordString.check_password(password, user.password)):
 				redirect('/user/login')
 			
 			user_session = UserSession()
 			user_session.id = hashlib.md5( ('%s'%(time.time()*random.random())).encode() ).hexdigest()
 			user_session.user_id = user.id
-			user_session._data['logged_in'] = True # TODO: add validation!
+			user_session._data['logged_in'] = True
 			user_session.session_data = pickle.dumps(user_session._data)
 			user_session.expiry = datetime.timedelta(days=COOKIE_EXPIRE_DAYS) + datetime.datetime.now()
 			db.add(user_session)
