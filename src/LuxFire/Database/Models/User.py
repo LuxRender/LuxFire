@@ -28,8 +28,8 @@
 The User Model holds data about a user who is registered on the LuxFire system.
 """
 
-from sqlalchemy import Table, Column, Integer, String, Sequence, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import Table, Column, Integer, String, Sequence, ForeignKey #@UnresolvedImport
+from sqlalchemy.orm import relationship #@UnresolvedImport
 
 from .. import ModelBase
 
@@ -52,6 +52,8 @@ class User(ModelBase):
 	credits = Column(Integer(10))
 	
 	roles = relationship(Role, secondary=roles_users, backref='users')
+	
+	# TODO: Implement encrypted passwords
 	
 	def __init__(self, email, password, credits):
 		self.email = email

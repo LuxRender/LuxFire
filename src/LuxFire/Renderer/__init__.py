@@ -101,7 +101,7 @@ class Renderer(ServerObject):
 				self._lux_context.wait()
 				self._lux_context.cleanup()
 				rendering = False
-				self.dbo('Rendering finished!')
+				self.log('Rendering finished!')
 			else:
 				time.sleep(5)
 	

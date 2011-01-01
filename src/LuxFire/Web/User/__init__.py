@@ -29,7 +29,7 @@ Interface for user session login/logout management
 """
 import datetime, hashlib, pickle, random, time
 
-from sqlalchemy.orm import eagerload
+from sqlalchemy.orm import eagerload	#@UnresolvedImport
 
 from ...Database.Models.User import User
 from ...Database.Models.UserSession import UserSession
@@ -37,9 +37,10 @@ from ...Database.Models.UserSession import UserSession
 from .. import LuxFireWeb
 from ..bottle import request, response, redirect
 
-@LuxFireWeb.route('/users')
-def user_index():
-	return "[Table]"
+#------------------------------------------------------------------------------ 
+# Per-user management
+#------------------------------------------------------------------------------ 
+COOKIE_EXPIRE_DAYS = 7
 
 def get_user_session():
 	UserSession.delete_old_sessions()
@@ -52,7 +53,19 @@ def get_user_session():
 	except:
 		return None
 
+# Provides @User.protected() decorator for access control
+def protected():
+	def decorator(func):
+		def wrapper(*a, **ka):
+			u_session = get_user_session()
+			if not (u_session and u_session._data['logged_in'] == True):
+				redirect('/user/login')
+			return func(*a, **ka)
+		return wrapper
+	return decorator
+
 @LuxFireWeb.route('/user/status')
+@protected()
 def user_status():
 	u_session = get_user_session()
 	if u_session and u_session._data['logged_in'] == True:
@@ -61,18 +74,30 @@ def user_status():
 		return """Logged out! <a href="/user/login">Log in</a>"""
 
 @LuxFireWeb.route('/user/jobs')
+@protected()
 def user_jobs():
 	return "[Table]"
 
-COOKIE_EXPIRE_DAYS = 7
+@LuxFireWeb.get('/user/login')
+def user_login_form():
+	return LuxFireWeb._templater.get_template('user_login.html').render()
 
-@LuxFireWeb.route('/user/login')
-def user_login():
+@LuxFireWeb.post('/user/login')
+def user_login_process():
 	u_session = get_user_session()
 	if not u_session:
 		try:
+			email = request.forms.get('email') #@UndefinedVariable
+			password = request.forms.get('password') #@UndefinedVariable
+			
 			db = LuxFireWeb._db
-			user = db.query(User).one()
+			user = db.query(User).filter(User.email==email).one()
+			
+			# TODO: Implement encrypted passwords
+			# TODO: User Role check for log in permission
+			if not (user and user.password == password):
+				redirect('/user/login')
+			
 			user_session = UserSession()
 			user_session.id = hashlib.md5( ('%s'%(time.time()*random.random())).encode() ).hexdigest()
 			user_session.user_id = user.id
@@ -88,7 +113,7 @@ def user_login():
 			)
 		except:
 			pass
-	redirect('/user/status')
+	redirect('/')
 
 @LuxFireWeb.route('/user/logout')
 def user_logout():
@@ -104,3 +129,11 @@ def user_logout():
 		)
 	redirect('/user/status')
 
+
+#------------------------------------------------------------------------------ 
+# All users management
+#------------------------------------------------------------------------------ 
+@LuxFireWeb.route('/users')
+@protected()
+def user_index():
+	return "[Table]"

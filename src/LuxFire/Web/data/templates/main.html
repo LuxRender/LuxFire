@@ -1,27 +1,10 @@
-<html>
-	<head>
-		<link rel="stylesheet" href="static/css/reset.css" type="text/css" />
-		<link rel="stylesheet" href="static/css/text.css" type="text/css" />
-		<link rel="stylesheet" href="static/css/960.css" type="text/css" />
-		<link rel="stylesheet" href="static/css/ui-darkness/jquery-ui-1.8.7.custom.css" type="text/css" />
-		<script src="static/js/jquery-1.4.4.min.js" type="text/javascript"></script>
-		<script src="static/js/jquery-ui-1.8.7.custom.min.js" type="text/javascript"></script>
-		<title>LuxFire Administration</title>
-	</head>
-	<body class="ui-widget-content">
-	
-	<div class="container_12" id="layout_header" style="margin-top:12px;margin-bottom:12px;overflow:auto;">
-		<div class="grid_12">
-			<span style="float:left">
-				<img src="/static/img/logos/logo_luxrender.png" alt="LuxRender" />
-			</span>
-			<span style="float:right">
-				<img src="/static/img/logos/logo_luxfire.png" alt="LuxFire" />
-			</span>
+{% extends "base.html" %}
+{% block nav %}
+		<div class="grid_12" id="nav">
+			<div style="float:right;"><a href="/user/logout">Log out</a></div>
 		</div>
-	</div>
-	
-	<div class="container_12" id="layout_main" style="clear:both;">
+{% endblock %}
+{% block content %}
 		<div class="grid_12" id="main_tabs">
 			<ul>
 				<li><a href="/users"><span>User Management</span></a></li>
@@ -30,20 +13,11 @@
 				<li><a href="/renderer"><span>Renderers</span></a></li>
 			</ul>
 		</div>
-	</div>
-	
-	<div class="container_12" id="layout_footer">
-		<div class="grid_12" style="text-align: center; color: #444444; font-size: smaller">
-			LuxFire and LuxRender are free software, released under the GPL license.
-			See <a href="http://www.luxrender.net/">www.luxrender.net</a> for more info.
-		</div>
-	</div>
-	
+{% endblock %}
+{% block tail %}
 	<script type="text/javascript">
 		$(function(){
-			$('#main_tabs').tabs({
-			});
+			$('#main_tabs').tabs({});
 		});
 	</script>
-	</body>
-</html>
+{% endblock %}

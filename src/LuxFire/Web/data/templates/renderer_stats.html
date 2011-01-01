@@ -1,5 +1,6 @@
-<h2>{{ dispatcher }}</h2>
-<table id="dispatcher_queue" width="100%">
+<button id="renderer_stats_reload" style="float:right;">Refresh</button>
+
+<table id="renderer_stats" width="100%" style="clear:both;">
 	<thead>
 		<tr>
 			<th align="left" width="300">Renderer</th>
@@ -13,3 +14,22 @@
 	</tr>
 	{% endfor %}
 </table>
+
+<script>
+$(function(){
+	$('#renderer_stats_reload').button({
+		icons: {
+			primary: 'ui-icon-arrowrefresh-1-e'
+		}
+	}).click(function()
+	{
+		$('#renderer_stats').parent().load(
+			'/renderer'
+		);
+		
+		$(this).blur();
+		return false;
+	});
+	
+});
+</script>

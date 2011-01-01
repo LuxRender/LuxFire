@@ -31,8 +31,10 @@ LuxFire.Renderer information views
 from ...Renderer.Client import RendererGroup, RendererClient
 
 from .. import LuxFireWeb
+from .. import User
 
 @LuxFireWeb.route('/renderer')
+@User.protected()
 def renderer_index():
 	out = ''
 	

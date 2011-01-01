@@ -29,8 +29,8 @@ Dispatcher is a Render Queue/Job manager and dispatcher for Renderer.Servers.
 """
 
 import datetime, glob, os, shutil, threading, time
-from sqlalchemy.sql.expression import desc
-from sqlalchemy.orm import eagerload
+from sqlalchemy.sql.expression import desc #@UnresolvedImport
+from sqlalchemy.orm import eagerload #@UnresolvedImport
 
 from LuxRender import LuxLog, TimerThread
 import Pyro.errors

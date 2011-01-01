@@ -1,4 +1,6 @@
-<h2>{{ dispatcher }}</h2>
+<button id="dispatcher_queue_reload" style="float:right;">Refresh</button>
+
+<h2 style="clear:both;">{{ dispatcher }}</h2>
 <table id="dispatcher_queue" width="100%">
 	<thead>
 		<tr>
@@ -23,3 +25,22 @@
 	</tr>
 	{% endfor %}
 </table>
+
+<script>
+$(function(){
+	$('#dispatcher_queue_reload').button({
+		icons: {
+			primary: 'ui-icon-arrowrefresh-1-e'
+		}
+	}).click(function()
+	{
+		$('#dispatcher_queue').parent().load(
+			'/dispatcher'
+		);
+		
+		$(this).blur();
+		return false;
+	});
+	
+});
+</script>

@@ -31,8 +31,10 @@ LuxFire.Dispatcher information views
 from ...Dispatcher.Client import DispatcherGroup
 
 from .. import LuxFireWeb
+from .. import User
 
 @LuxFireWeb.route('/dispatcher')
+@User.protected()
 def dispatcher_index():
 	out = ''
 	

@@ -29,8 +29,8 @@ The Queue Model holds data about rendering jobs that are yet to be processed by
 LuxFire.Dispatcher.
 """
 
-from sqlalchemy import Column, DateTime, Enum, Integer, String, Sequence, Text, ForeignKey
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy import Column, DateTime, Enum, Integer, String, Sequence, Text, ForeignKey #@UnresolvedImport
+from sqlalchemy.orm import relationship, backref #@UnresolvedImport
 
 from .. import ModelBase
 from .User import User

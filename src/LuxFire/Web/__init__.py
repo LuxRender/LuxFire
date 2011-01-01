@@ -50,6 +50,9 @@ LuxFireWeb._templater = jinja2.Environment(
 	loader=jinja2.FileSystemLoader(LuxFireWeb._templates_root)
 )
 
+# Import routes from sub packages
+from . import Dispatcher, Error, Renderer, User #@UnresolvedImport
+
 @LuxFireWeb.route('/static/:path#.+#')
 def server_static(path):
 	return bottle.static_file(path, root=LuxFireWeb._static_root)
@@ -59,8 +62,6 @@ def server_favicon():
 	return bottle.static_file('img/favicon.ico', root=LuxFireWeb._static_root)
 
 @LuxFireWeb.route('/')
+@User.protected()
 def server_index():
-	return LuxFireWeb._templater.get_template('main.html').render(greet='World!')
-
-# Import routes from sub packages
-from . import Dispatcher, Error, Renderer, User
+	return LuxFireWeb._templater.get_template('main.html').render()
