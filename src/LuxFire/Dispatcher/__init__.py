@@ -133,7 +133,7 @@ class DispatcherWorker(ServerObjectThread):
 		# according to its status field
 		status_handlers = {
 			# Handled by User/UI -> UPLOADING
-			'NEW':			self.handler_PENDING, #,	# TODO: TESTING
+			'NEW':			self.handler_NULL,
 			
 			# Handled by User/UI -> PENDING
 			'UPLOADING':	self.handler_NULL,
@@ -194,7 +194,7 @@ class DispatcherWorker(ServerObjectThread):
 			
 			db.flush()
 			
-			# Now we can safely wait for DispatcherDistributors and for Renderer.Servers to start
+			# Now we can safely wait for child threads to complete
 			for rst in self._render_start_threads:
 				if rst.is_alive():
 					rst.join()

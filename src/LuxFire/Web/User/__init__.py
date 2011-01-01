@@ -38,6 +38,17 @@ from ...Database.Models.UserSession import UserSession
 from .. import LuxFireWeb
 from ..bottle import request, response, redirect
 
+
+def user_redirect(url, message):
+	"""
+	If this is an AJAX request, just return the message,
+	otherwise perform a redirect().
+	"""
+	if request.header.get('X-Requested-With') == 'XMLHttpRequest':	#@UndefinedVariable
+		return message
+	else:
+		redirect(url)
+
 #------------------------------------------------------------------------------ 
 # Per-user management
 #------------------------------------------------------------------------------ 
@@ -55,13 +66,32 @@ def get_user_session():
 		return None
 
 # Provides @User.protected() decorator for access control
-def protected():
+# roles[] is a list of roles the user must have to access this route.
+# The user must hold any one of the roles given by name in the list.
+def protected(roles=['login']):
 	def decorator(func):
 		def wrapper(*a, **ka):
 			u_session = get_user_session()
-			if not (u_session and u_session._data['logged_in'] == True):
-				redirect('/user/login')
-			return func(*a, **ka)
+			try:
+				if not (u_session and u_session._data['logged_in'] == True):
+					raise Exception('Not logged in')
+				
+				role_check = False
+				for u_role in u_session.user.roles:
+					for c_role in roles:
+						if u_role.name == c_role:
+							role_check = True
+							break
+					if role_check:
+						break
+				
+				if not role_check:
+					raise Exception('Insufficient privileges')
+				
+				return func(*a, **ka)
+			except Exception as err:
+				return user_redirect('/user/login', '%s'%err)
+			
 		return wrapper
 	return decorator
 
