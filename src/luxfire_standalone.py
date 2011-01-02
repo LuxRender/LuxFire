@@ -35,8 +35,8 @@ if __name__=='__main__':
 	parser = optparse.OptionParser(
 		description='All-in-one launcher script for a standalone render queue. '
 		'By default, this script will start a Pyro name server, a '
-		'LuxFire.Dispatcher.Server and a LuxFire.Renderer.Server. You can '
-		'disable any of these with the options below.'
+		'LuxFire.Dispatcher.Server, LuxFire.Renderer.Server and a LuxFire.Web.Server. '
+		'You can disable any of these with the options below.'
 	)
 	parser.add_option(
 		'-n',
