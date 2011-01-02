@@ -39,7 +39,8 @@ from .User import User
 class UserSession(ModelBase):
 	__tablename__ = 'user_sessions'
 	
-	id = Column(Text(32), Sequence('user_sessions_id_seq'), primary_key=True)
+	id = Column(Integer(12), Sequence('user_sessions_id_seq'), primary_key=True)
+	sess_id = Column(Text(32))
 	user_id = Column(Integer(12), ForeignKey('users.id'))
 	expiry = Column(DateTime(), nullable=False)
 	session_data = Column(Text())

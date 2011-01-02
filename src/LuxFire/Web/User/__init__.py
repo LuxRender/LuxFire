@@ -63,7 +63,7 @@ def get_user_session():
 	try:
 		db = LuxFireWeb._db
 		sess_id = request.COOKIES.get('session_id', '') #@UndefinedVariable
-		user_session = db.query(UserSession).options(eagerload('user')).filter(UserSession.id==sess_id).one()
+		user_session = db.query(UserSession).options(eagerload('user')).filter(UserSession.sess_id==sess_id).one()
 		user_session._data = pickle.loads(user_session.session_data)
 		return user_session
 	except:
@@ -120,7 +120,7 @@ def user_login_process():
 				redirect('/user/login')
 			
 			user_session = UserSession()
-			user_session.id = hashlib.md5( ('%s'%(time.time()*random.random())).encode() ).hexdigest()
+			user_session.sess_id = hashlib.md5( ('%s'%(time.time()*random.random())).encode() ).hexdigest()
 			user_session.user_id = user.id
 			user_session._data['logged_in'] = True
 			user_session.session_data = pickle.dumps(user_session._data)
@@ -128,7 +128,7 @@ def user_login_process():
 			db.add(user_session)
 			response.set_cookie(
 				'session_id',
-				user_session.id,
+				user_session.sess_id,
 				path='/',
 				expires=COOKIE_EXPIRE_DAYS*86400
 			)
