@@ -86,11 +86,18 @@ import time
 import tokenize
 import tempfile
 
-from http.cookies import SimpleCookie
+if sys.version >= '3.0':
+	from http.cookies import SimpleCookie
+else:
+	from Cookie import SimpleCookie
 from tempfile import TemporaryFile
 from traceback import format_exc
-from urllib.parse import quote as urlquote
-from urllib.parse import urlunsplit, urljoin
+if sys.version >= '3.0':
+	from urllib.parse import quote as urlquote
+	from urllib.parse import urlunsplit, urljoin
+else:
+	from urllib import quote as urlquote
+	from urlparse import urlunsplit, urljoin
 
 try:
 	from collections import MutableMapping as DictMixin
@@ -98,12 +105,15 @@ except ImportError: # pragma: no cover
 	from UserDict import DictMixin
 
 try:
-	from urllib.parse import parse_qs
+	if sys.version >= '3.0':
+		from urllib.parse import parse_qs
+	else:
+		from urlparse import parse_qs
 except ImportError: # pragma: no cover
 	from cgi import parse_qs
 
 try:
-	import pickle as pickle
+	import cPickle as pickle
 except ImportError: # pragma: no cover
 	import pickle
 
@@ -127,7 +137,10 @@ if sys.version_info >= (3,0,0): # pragma: no cover
 	def touni(x, enc='utf8'): # Convert anything to unicode (py3)
 		return str(x, encoding=enc) if isinstance(x, bytes) else str(x)
 else:
-	from io import StringIO as BytesIO
+	if sys.version >= '3.0':
+		from io import StringIO as BytesIO
+	else:
+		from StringIO import StringIO as BytesIO
 	#from types import StringType
 	NCTextIOWrapper = None
 	def touni(x, enc='utf8'): # Convert anything to unicode (py2)
