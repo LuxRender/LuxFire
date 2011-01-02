@@ -389,6 +389,22 @@ class Dispatcher(ServerObject):
 				q.status_data = ''
 		return True
 	
+	def add_file(self, user_id, jobname, filename, filedata):
+		"""Receive file data for the Queue item"""
+		with DatabaseSession() as db:
+			q = db.query(Queue).options(eagerload('user')).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).one()
+			if q.status != 'NEW':
+				raise Exception('Wrong queue status for file upload!')
+			
+			job_path = os.path.join( LuxFireConfig.Instance().LocalStorage(), q.path )
+			if not os.path.exists(job_path):
+				os.makedirs(job_path)
+			file_path = os.path.join(job_path, filename)
+			with open(file_path, 'wb') as file:
+				file.write(filedata)
+			
+		return True
+	
 	def list_queue(self):
 		return Database.Session().query(Queue).options(eagerload('user')).order_by(desc(Queue.id)).all()
 	

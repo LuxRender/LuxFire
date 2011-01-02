@@ -238,6 +238,26 @@ def user_queue_new():
 	except Exception as err:
 		return {'error': '%s'%err}
 
+@LuxFireWeb.post('/user/queue_upload')
+@protected()
+def user_queue_upload():
+	try:
+		u_session = get_user_session()
+		db = LuxFireWeb._db
+		q = db.query(Queue).filter(Queue.id==request.GET.get('q_id')).one()	#@UndefinedVariable
+		filename = request.GET.get('qqfile')	#@UndefinedVariable
+		filedata = request.body
+		
+		dispatchers = DispatcherGroup()
+		if len(dispatchers) > 0:
+			for dispatcher_name, dispatcher in dispatchers.items():	#@UnusedVariable
+				break
+			if dispatcher.add_file(u_session.user.id, q.jobname, filename, filedata.read()):
+				return {'success':True}
+		
+		raise Exception('Error sending file to Dispatcher')
+	except Exception as err:
+		return {'success':False, 'error':'%s'%err}
 #------------------------------------------------------------------------------ 
 # All users management
 #------------------------------------------------------------------------------ 

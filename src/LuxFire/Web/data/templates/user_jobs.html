@@ -83,7 +83,13 @@
 	</form>
 </div>
 
-<script>
+<div id="user_queue_upload" title="Upload scene data" class="ui-helper-hidden">
+	<div id="upload_error" style="color:#CC0000;"></div>
+	<p>Click or drag and drop files onto the area below to upload:</p>
+	<div id="upload_area" style="background-color:#CCCCCC;border:4px solid #666666;"></div>
+</div>
+
+<script type="text/javascript">
 $(function(){
 	function reload_user_queue()
 	{
@@ -150,14 +156,32 @@ $(function(){
 		$(this).blur();
 		return false;
 	});
-	
+
+	var uploader = new qq.FileUploader({
+		element: $('#upload_area')[0],
+		action: '/user/queue_upload'
+	});
+	$('#user_queue_upload').dialog('destroy');
+	$('#user_queue_upload').dialog({
+		autoOpen: false,
+		modal: true,
+		resizable: false,
+		buttons: {
+			'Done': function() {
+				$( this ).dialog("close");
+			}
+		}
+	});
 	$('.user_queue_upload').button({
 		icons: {
 			primary: 'ui-icon-document'
 		}
 	}).click(function()
 	{
-		
+		uploader.setParams({
+			q_id: $(this).attr('id').replace('uqu_','')
+		});
+		$('#user_queue_upload').dialog('open');
 		$(this).blur();
 		return false;
 	});
