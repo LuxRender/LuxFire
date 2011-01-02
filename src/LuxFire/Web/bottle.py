@@ -77,7 +77,10 @@ import os
 import re
 import subprocess
 import sys
-import _thread
+if sys.version >= '3.0':
+	import _thread
+else:
+	import thread as _thread
 import threading
 import time
 import tokenize
