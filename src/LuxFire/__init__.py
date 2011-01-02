@@ -28,7 +28,11 @@
 LuxFire is a distributed network rendering and rendering management system for
 LuxRender.
 """
-import configparser, platform
+import sys, platform
+if sys.version >= '3.0':
+	import configparser
+else:
+	import ConfigParser as configparser	#@UnresolvedImport
 
 from LuxRender import LuxLog
 
