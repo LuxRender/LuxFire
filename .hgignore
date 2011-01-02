@@ -1,6 +1,7 @@
 
 syntax: regexp
-^src/LuxRender/pylux\.(so|pyd)$
+^src/LuxRender/py2/pylux\.(so|pyd)$
+^src/LuxRender/py3/pylux\.(so|pyd)$
 
 syntax: glob
 *.pyc

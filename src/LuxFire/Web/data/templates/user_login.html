@@ -5,18 +5,15 @@
 			<div class="ui-widget-content">
 				<h2>Log In</h2>
 				<form action="/user/login" method="POST">
-					<div>
-						<dl>
-						<dt><label style="width:120px;" for="email">Username / Email: </label></dt>
-						<dd><input name="email" class="ui-state-default" /></dd>
-						
-						<dt><label style="width:120px;" for="password">Password: </label></dt>
-						<dd><input name="password" type="password" class="ui-state-default" /></dd>
-						
-						<dt><br /></dt>
-						<dd><input type="submit" class="ui-state-highlight" value="Log In" /></dd>
-						</dl>
-					</div>
+					<fieldset>
+						<label for="email"><span style="width:150px;">Username: </span></label>
+						<input name="email" id="email" class="ui-state-default" />
+						<br />
+						<label for="password"><span style="width:150px;">Password: </span></label>
+						<input name="password" id="password" type="password" class="ui-state-default" />
+						<br /><br />
+						<input type="submit" class="ui-state-highlight" value="Log In" />
+					</fieldset>
 				</form>
 			</div>
 		</div>

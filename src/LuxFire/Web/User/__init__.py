@@ -150,7 +150,7 @@ def user_logout():
 			path='/',
 			expires=-1
 		)
-	redirect('/user/status')
+	redirect('/')
 
 
 @LuxFireWeb.route('/user/jobs')
@@ -193,7 +193,7 @@ def user_queue_finalise():
 @protected()
 def user_queue_dequeue():
 	try:
-		dispatchers = DispatcherGroup()	# TODO: handle ClientException
+		dispatchers = DispatcherGroup()
 	except ClientException as err:
 		return {'error': '%s'%err}
 	
@@ -211,6 +211,32 @@ def user_queue_dequeue():
 		dispatcher.abort_queue(u_session.user.id, q.jobname)
 		
 	return {}
+
+@LuxFireWeb.post('/user/queue_new')
+@protected()
+def user_queue_new():
+	try:
+		dispatchers = DispatcherGroup()
+		u_session = get_user_session()
+		
+		jobname = request.POST.get('jobname')	#@UndefinedVariable
+		haltspp = int(request.POST.get('haltspp'))	#@UndefinedVariable
+		halttime = int(request.POST.get('halttime'))	#@UndefinedVariable
+		
+		if not jobname or jobname == '':
+			raise Exception('You must specify a job name.')
+		
+		if haltspp < 1 and halttime < 1:
+			raise Exception('You must specify at least one halt condition.')
+		
+		if len(dispatchers) > 0:
+			for dispatcher_name, dispatcher in dispatchers.items():	#@UnusedVariable
+				break
+			dispatcher.add_queue(u_session.user.id, jobname, haltspp, halttime)
+		
+		return {}
+	except Exception as err:
+		return {'error': '%s'%err}
 
 #------------------------------------------------------------------------------ 
 # All users management

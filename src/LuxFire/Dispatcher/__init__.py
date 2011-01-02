@@ -70,7 +70,7 @@ class DispatcherDistributor(ServerObjectThread):
 				# At this point in time, qi.path is located in LocalStorage
 				in_path = os.path.realpath( os.path.join( cfg.LocalStorage(), qi.path ) )
 				if not os.path.exists( in_path ):
-					raise Exception('Data for this item not found on this machine!')
+					raise Exception('Data not found for this item!')
 				
 				lxs_files = glob.glob( os.path.join(in_path, '*.lxs') )
 				if len(lxs_files) == 0:
@@ -105,17 +105,15 @@ class DispatcherDistributor(ServerObjectThread):
 					shutil.copytree(in_path, out_path)
 				
 				qi.status_data = os.path.basename(lxs_files[0])
+			
+				# Now self.qi.path refers to a scene file in NetworkStorage
+				qi.status = 'READY'
+				self.dbo('Data ready')
 				
 			except Exception as err:
 				self.log('Data copy failed: %s' % err)
 				qi.status = 'ERROR'
 				qi.status_data = '%s'%err
-				return
-			
-			# Now self.qi.path refers to a scene file in NetworkStorage
-			qi.status = 'READY'
-			
-			self.dbo('Data ready')
 
 class DispatcherWorker(ServerObjectThread):
 	_Service_Type = 'DispatcherWorker'
@@ -266,8 +264,15 @@ class DispatcherWorker(ServerObjectThread):
 			RC, proxy = self.renderer_servers[renderer_server_name]	#@UnusedVariable
 			if RC.getAttribute('renderer', 'name') == 0:
 				# Rendering must have finished!
-				qi.status = 'ERROR'
-				qi.status_data = 'TODO: Implement Result transfer'
+				with DatabaseSession() as db:
+					ri = Result()
+					ri.date = datetime.datetime.now()
+					ri.jobname = qi.jobname
+					ri.path = qi.path
+					ri.status = 'RENDER_COMPLETE'
+					ri.user_id = qi.user_id
+					db.add(ri)
+					db.delete(qi)
 			else:
 				# Renderer.Server is busy, print out what it's doing
 				self.dbo('%s: %s' % (renderer_server_name, RC.printableStatistics(True)))
@@ -365,6 +370,7 @@ class Dispatcher(ServerObject):
 		return True
 	
 	def finalise_queue(self, user_id, jobname):
+		# TODO: check correct q.state and if any files have been uploaded !
 		with DatabaseSession() as db:
 			q = db.query(Queue).options(eagerload('user')).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).one()
 			# If not exactly one q found, exception will be passed back to user

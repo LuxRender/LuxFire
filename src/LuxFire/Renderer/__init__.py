@@ -27,7 +27,7 @@
 """
 Renderer represents an instance of the LuxRender Renderer Context.
 """
-import os, threading
+import os, sys, threading
 
 # LuxRender imports
 from LuxRender import LuxLog
@@ -60,7 +60,11 @@ class Renderer(ServerObject):
 		'''
 		ServerObject.__init__(self, debug=debug, name=name)
 		
-		from LuxRender import pylux	#@UnresolvedImport
+		if sys.version >= '3.0':
+			from LuxRender.py3 import pylux	#@UnresolvedImport
+		else:
+			from LuxRender.py2 import pylux	#@UnresolvedImport
+		
 		self._lux_context = pylux.Context( '%x' % id(self) )
 		self._context_methods = dir(self._lux_context)
 	
