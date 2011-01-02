@@ -27,9 +27,14 @@
 """
 LuxFire.Web error handler
 """
+import sys
 
 from .. import LuxFireWeb
-from ..bottle import error
+
+if sys.version >= '3.0':
+	from ..bottle.bottle3 import error
+else:
+	from ..bottle.bottle2 import error
 
 @LuxFireWeb.error(403)
 @LuxFireWeb.error(404)

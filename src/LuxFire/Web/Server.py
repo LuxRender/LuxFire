@@ -30,8 +30,12 @@ Web.Server runs the http server to run the web interface to LuxFire
 
 def web_serve():
 	from .. import LuxFireConfig
-	from .bottle import run
 	from . import LuxFireWeb, WebLog
+	import sys, os
+	if sys.version >= '3.0':
+		from .bottle.bottle3 import run
+	else:
+		from .bottle.bottle2 import run
 	
 	cfg = LuxFireConfig.Instance()
 
@@ -58,7 +62,6 @@ def web_serve():
 	LuxFireWebRunArgs['quiet'] = not options.verbose
 	
 	# This adds bottle to the sys path so that default error pages work
-	import sys, os
 	sys.path.insert(0, os.path.join(LuxFireWeb._data_root, os.path.pardir))
 	
 	WebLog('Using static document root: %s' % LuxFireWeb._static_root)

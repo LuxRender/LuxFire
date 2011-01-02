@@ -77,27 +77,17 @@ import os
 import re
 import subprocess
 import sys
-if sys.version >= '3.0':
-	import _thread
-else:
-	import thread as _thread
+import _thread
 import threading
 import time
 import tokenize
 import tempfile
 
-if sys.version >= '3.0':
-	from http.cookies import SimpleCookie
-else:
-	from Cookie import SimpleCookie
+from http.cookies import SimpleCookie
 from tempfile import TemporaryFile
 from traceback import format_exc
-if sys.version >= '3.0':
-	from urllib.parse import quote as urlquote
-	from urllib.parse import urlunsplit, urljoin
-else:
-	from urllib import quote as urlquote
-	from urlparse import urlunsplit, urljoin
+from urllib.parse import quote as urlquote
+from urllib.parse import urlunsplit, urljoin
 
 try:
 	from collections import MutableMapping as DictMixin
@@ -105,15 +95,12 @@ except ImportError: # pragma: no cover
 	from UserDict import DictMixin
 
 try:
-	if sys.version >= '3.0':
-		from urllib.parse import parse_qs
-	else:
-		from urlparse import parse_qs
+	from urllib.parse import parse_qs
 except ImportError: # pragma: no cover
 	from cgi import parse_qs
 
 try:
-	import cPickle as pickle
+	import pickle as pickle
 except ImportError: # pragma: no cover
 	import pickle
 
@@ -137,10 +124,7 @@ if sys.version_info >= (3,0,0): # pragma: no cover
 	def touni(x, enc='utf8'): # Convert anything to unicode (py3)
 		return str(x, encoding=enc) if isinstance(x, bytes) else str(x)
 else:
-	if sys.version >= '3.0':
-		from io import StringIO as BytesIO
-	else:
-		from StringIO import StringIO as BytesIO
+	from io import StringIO as BytesIO
 	#from types import StringType
 	NCTextIOWrapper = None
 	def touni(x, enc='utf8'): # Convert anything to unicode (py2)

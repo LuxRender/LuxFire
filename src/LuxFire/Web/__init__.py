@@ -28,15 +28,18 @@
 The Web package contains the web app user interfaces used to manage the LuxFire
 system, and the built in http server to run it.
 """
-import os
+import sys, os
 import jinja2	#@UnresolvedImport
 
 from LuxRender import LuxLog
 
 from ..Database import Database
 
-from . import bottle
-
+if sys.version >= '3.0':
+	from .bottle import bottle3 as bottle
+else:
+	from .bottle import bottle2 as bottle
+	
 def WebLog(message):
 	LuxLog(message, module_name='LuxFire.Web')
 

@@ -27,7 +27,7 @@
 """
 Interface for user session login/logout management
 """
-import datetime, hashlib, pickle, random, time
+import datetime, hashlib, pickle, random, sys, time
 
 from sqlalchemy.orm import eagerload	#@UnresolvedImport
 
@@ -40,8 +40,10 @@ from ...Database.Models.UserSession import UserSession
 from ...Dispatcher.Client import DispatcherGroup
 
 from .. import LuxFireWeb
-from ..bottle import request, response, redirect
-
+if sys.version >= '3.0':
+	from ..bottle.bottle3 import request, response, redirect
+else:
+	from ..bottle.bottle2 import request, response, redirect
 
 def user_redirect(url, message):
 	"""
