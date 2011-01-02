@@ -47,19 +47,19 @@
 			<th align="left">ID</th>
 			<th align="left">Date</th>
 			<th align="left">Job Name</th>
-			<th align="left">Job Path</th>
 			<th align="left">Status</th>
-			<th align="left">Status Message</th>
+			<th align="left">Actions</th>
 		</tr>
 	</thead>
-	{% for q in user_results %}
+	{% for r in user_results %}
 	<tr>
-		<td>{{ q.id }}</td>
-		<td>{{ q.date }}</td>
-		<td>{{ q.jobname }}</td>
-		<td>{{ q.path }}</td>
-		<td>{{ q.status }}</td>
-		<td>-</td>
+		<td>{{ r.id }}</td>
+		<td>{{ r.date }}</td>
+		<td>{{ r.jobname }}</td>
+		<td>{{ r.status }}</td>
+		<td>
+			{% if r.status == 'RENDER_COMPLETE' %}<button id="urd_{{ r.id }}" class="user_result_download">Download</button>{% endif %}
+		</td>
 	</tr>
 	{% endfor %}
 </table>
@@ -221,6 +221,32 @@ $(function(){
 			'/user/queue_reset',
 			{
 				q_id: $(this).attr('id').replace('uqd_','')
+			},
+			function(data)
+			{
+				if (data.error)
+					show_message(data.error);
+				else
+					reload_user_queue();
+			},
+			"json"
+		);
+		reload_user_queue();
+		
+		$(this).blur();
+		return false;
+	});
+
+	$('.user_result_download').button({
+		icons: {
+			primary: 'ui-icon-arrowthickstop-1-s'
+		}
+	}).click(function()
+	{
+		$.post(
+			'/user/result_download',
+			{
+				r_id: $(this).attr('id').replace('urd_','')
 			},
 			function(data)
 			{
