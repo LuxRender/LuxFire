@@ -335,7 +335,7 @@ class DispatcherTimer(TimerThread, ServerObject):
 		self.dbo('Have %i DispatcherWorkers' % len(self._worker_pool))
 	
 	def stop(self):
-		super().stop()
+		TimerThread.stop(self)
 		self._purge_threads(join=True)
 
 class Dispatcher(ServerObject):
