@@ -27,7 +27,7 @@
 """
 Renderer represents an instance of the LuxRender Renderer Context.
 """
-import os, threading, time
+import os, threading
 
 # LuxRender imports
 from LuxRender import LuxLog
@@ -92,18 +92,18 @@ class Renderer(ServerObject):
 		threading.Thread(target=self._context_monitor).start()
 	
 	def _context_monitor(self):
-		rendering = True
-		while rendering:
+		rendering = threading.Event()
+		while not rendering.is_set():
 			if self._lux_context.statistics('filmIsReady') == 1.0 or \
 			   self._lux_context.statistics('terminated') == 1.0 or \
 			   self._lux_context.statistics('enoughSamples') == 1.0:
 				self._lux_context.exit()
 				self._lux_context.wait()
 				self._lux_context.cleanup()
-				rendering = False
+				rendering.set()
 				self.log('Rendering finished!')
 			else:
-				time.sleep(5)
+				rendering.wait(5)
 	
 	def get_context_methods(self):
 		'''
