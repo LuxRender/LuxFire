@@ -28,7 +28,7 @@
 Dispatcher is a Render Queue/Job manager and dispatcher for Renderer.Servers.
 """
 
-import datetime, glob, os, pickle, shutil, threading, time
+import datetime, glob, os, shutil, threading, time
 from sqlalchemy.sql.expression import desc #@UnresolvedImport
 from sqlalchemy.orm import eagerload #@UnresolvedImport
 
@@ -364,17 +364,12 @@ class Dispatcher(ServerObject):
 		with DatabaseSession() as db:
 			us = db.query(UserSession).filter(UserSession.user_id==user_id).all()
 			for user_session in us:
-				try:
-					session_data = pickle.loads(user_session.session_data)
-				except:
-					continue
-				if type(session_data) is dict and 'dispatcher_key' in session_data.keys() and session_data['dispatcher_key']==d_key:
+				if 'dispatcher_key' in user_session.session_data.keys() and user_session.session_data['dispatcher_key']==d_key:
 					verified = True
 					
 					# Remove the key from the session once found
-					del session_data['dispatcher_key']
-					user_session._data = session_data
-					user_session.save()
+					del user_session.session_data['dispatcher_key']
+					db.add(user_session)
 					break
 		if not verified:
 			raise ClientException('Dispatcher session authentication failure')
@@ -384,6 +379,11 @@ class Dispatcher(ServerObject):
 	
 	def add_queue(self, user_id, d_key, jobname, haltspp=-1, halttime=-1):
 		self._verify_user_key(user_id, d_key)
+		
+		with DatabaseSession() as db:
+			existing = db.query(Queue).options(eagerload('user')).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).count()
+		if existing > 0:
+			raise ClientException('Job with that name already exists')
 		
 		q = Queue()
 		q.user_id = user_id

@@ -28,9 +28,9 @@
 The Result Model holds information about rendering jobs that have been processed
 by LuxFire.Dispatcher.
 """
-import datetime, pickle
+import datetime
 
-from sqlalchemy import Column, DateTime, Integer, Sequence, Text, ForeignKey
+from sqlalchemy import Column, DateTime, Integer, PickleType, Sequence, Text, ForeignKey
 from sqlalchemy.orm import relationship, backref
 
 from .. import DatabaseSession, ModelBase
@@ -43,19 +43,9 @@ class UserSession(ModelBase):
 	sess_id = Column(Text(32))
 	user_id = Column(Integer(12), ForeignKey('users.id'))
 	expiry = Column(DateTime(), nullable=False)
-	session_data = Column(Text())
-	
-	# This is the raw session data that gets pickled into the session_data field
-	_data = {
-		'logged_in': False
-	}
+	session_data = Column(PickleType())
 	
 	user = relationship(User, backref=backref('user_sessions', order_by=id))
-	
-	def save(self):
-		self.session_data = pickle.dumps(self._data)
-		with DatabaseSession() as db:
-			db.add(self)
 	
 	def __repr__(self):
 		if self.user:

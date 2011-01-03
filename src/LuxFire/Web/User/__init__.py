@@ -27,7 +27,7 @@
 """
 Interface for user session login/logout management
 """
-import datetime, hashlib, pickle, random, sys, time
+import datetime, hashlib, random, sys, time
 
 from sqlalchemy.orm import eagerload	#@UnresolvedImport
 
@@ -66,7 +66,6 @@ def get_user_session():
 		db = LuxFireWeb._db
 		sess_id = request.COOKIES.get('session_id', '') #@UndefinedVariable
 		user_session = db.query(UserSession).options(eagerload('user')).filter(UserSession.sess_id==sess_id).one()
-		user_session._data = pickle.loads(user_session.session_data)
 		return user_session
 	except:
 		return None
@@ -79,7 +78,7 @@ def protected(roles=['login']):
 		def wrapper(*a, **ka):
 			u_session = get_user_session()
 			try:
-				if not (u_session and u_session._data['logged_in'] == True):
+				if not (u_session and 'logged_in' in u_session.session_data.keys() and u_session.session_data['logged_in'] == True):
 					raise Exception('Not logged in')
 				
 				role_check = False
@@ -128,9 +127,9 @@ def user_login_process():
 			user_session = UserSession()
 			user_session.sess_id = create_session_key()
 			user_session.user_id = user.id
-			user_session._data['logged_in'] = True
+			user_session.session_data = {'logged_in':  True}
 			user_session.expiry = datetime.timedelta(days=COOKIE_EXPIRE_DAYS) + datetime.datetime.now()
-			user_session.save()
+			db.add(user_session)
 			response.set_cookie(
 				'session_id',
 				user_session.sess_id,
@@ -186,8 +185,9 @@ def set_dispatcher_key():
 	
 	u_session = get_user_session()
 	dk = create_session_key()
-	u_session._data['dispatcher_key'] = dk
-	u_session.save()
+	u_session.session_data['dispatcher_key'] = dk
+	LuxFireWeb._db.add(u_session)
+	LuxFireWeb._db.flush()
 	
 	return dk
 
