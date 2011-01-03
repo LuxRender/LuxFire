@@ -28,7 +28,7 @@
 Dispatcher is a Render Queue/Job manager and dispatcher for Renderer.Servers.
 """
 
-import datetime, glob, os, shutil, threading, time
+import datetime, glob, os, pickle, shutil, threading, time
 from sqlalchemy.sql.expression import desc #@UnresolvedImport
 from sqlalchemy.orm import eagerload #@UnresolvedImport
 
@@ -40,6 +40,7 @@ from ..Client import ClientException
 from ..Database import Database, DatabaseSession
 from ..Database.Models.Queue import Queue
 from ..Database.Models.Result import Result
+from ..Database.Models.UserSession import UserSession
 from ..Renderer.Client import RendererGroup
 from ..Server import ServerObject, ServerObjectThread
 
@@ -353,10 +354,37 @@ class Dispatcher(ServerObject):
 	
 	timer = DispatcherTimer()
 	
+	def _verify_user_key(self, user_id, d_key):
+		"""
+		Verify that a user request contains the correct
+		key for authentication. Raises ClientException
+		on failure.
+		"""
+		verified = False
+		with DatabaseSession() as db:
+			us = db.query(UserSession).filter(UserSession.user_id==user_id).all()
+			for user_session in us:
+				try:
+					session_data = pickle.loads(user_session.session_data)
+				except:
+					continue
+				if type(session_data) is dict and 'dispatcher_key' in session_data.keys() and session_data['dispatcher_key']==d_key:
+					verified = True
+					
+					# Remove the key from the session once found
+					del session_data['dispatcher_key']
+					user_session._data = session_data
+					user_session.save()
+					break
+		if not verified:
+			raise ClientException('Dispatcher session authentication failure')
+	
 	# All dispatcher methods need to RETURN values, and not use *Log or print
 	# so the the methods are servable over the network
 	
-	def add_queue(self, user_id, jobname, haltspp=-1, halttime=-1):
+	def add_queue(self, user_id, d_key, jobname, haltspp=-1, halttime=-1):
+		self._verify_user_key(user_id, d_key)
+		
 		q = Queue()
 		q.user_id = user_id
 		q.path = os.path.join('%i'%user_id, clean_file_name(jobname))
@@ -369,7 +397,9 @@ class Dispatcher(ServerObject):
 			db.add(q)
 		return True
 	
-	def finalise_queue(self, user_id, jobname):
+	def finalise_queue(self, user_id, d_key, jobname):
+		self._verify_user_key(user_id, d_key)
+		
 		# TODO: check correct q.state and if any files have been uploaded !
 		with DatabaseSession() as db:
 			q = db.query(Queue).options(eagerload('user')).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).one()
@@ -378,9 +408,11 @@ class Dispatcher(ServerObject):
 			q.status_data = ''
 		return True
 	
-	def abort_queue(self, user_id, jobname):
+	def abort_queue(self, user_id, d_key, jobname):
 		"""Prevent an item from getting to RENDERING STATUS.
 		Can only be done if current status is READY, by changing status back to NEW"""
+		self._verify_user_key(user_id, d_key)
+		
 		with DatabaseSession() as db:
 			q = db.query(Queue).options(eagerload('user')).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).one()
 			# If not exactly one q found, exception will be passed back to user
@@ -389,8 +421,10 @@ class Dispatcher(ServerObject):
 				q.status_data = ''
 		return True
 	
-	def add_file(self, user_id, jobname, filename, filedata):
+	def add_file(self, user_id, d_key, jobname, filename, filedata):
 		"""Receive file data for the Queue item"""
+		self._verify_user_key(user_id, d_key)
+		
 		with DatabaseSession() as db:
 			q = db.query(Queue).options(eagerload('user')).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).one()
 			if q.status != 'NEW':
@@ -402,7 +436,7 @@ class Dispatcher(ServerObject):
 			file_path = os.path.join(job_path, filename)
 			with open(file_path, 'wb') as file:
 				file.write(filedata)
-			
+		
 		return True
 	
 	def list_queue(self):

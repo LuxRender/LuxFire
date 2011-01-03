@@ -105,6 +105,10 @@ def protected(roles=['login']):
 def user_login_form():
 	return LuxFireWeb._templater.get_template('user_login.html').render()
 
+
+def create_session_key():
+	return hashlib.md5( ('%s'%(time.time()*random.random())).encode() ).hexdigest()
+
 @LuxFireWeb.post('/user/login')
 def user_login_process():
 	u_session = get_user_session()
@@ -122,12 +126,11 @@ def user_login_process():
 				redirect('/user/login')
 			
 			user_session = UserSession()
-			user_session.sess_id = hashlib.md5( ('%s'%(time.time()*random.random())).encode() ).hexdigest()
+			user_session.sess_id = create_session_key()
 			user_session.user_id = user.id
 			user_session._data['logged_in'] = True
-			user_session.session_data = pickle.dumps(user_session._data)
 			user_session.expiry = datetime.timedelta(days=COOKIE_EXPIRE_DAYS) + datetime.datetime.now()
-			db.add(user_session)
+			user_session.save()
 			response.set_cookie(
 				'session_id',
 				user_session.sess_id,
@@ -166,51 +169,73 @@ def user_jobs():
 		user_results_length=len(ur)
 	)
 
+def set_dispatcher_key():
+	"""
+	This method will set a key in the current user session
+	so that method calls on the Dispatcher can verify that
+	the commands came from a logged in user, and not from
+	other network traffic pretending to be a user.
+	
+	I don't pretend that this is totally secure, but it is
+	probably a bit better than nothing at all.
+	
+	Note, that just sending the existing session_id like a
+	browser does is not secure at all, since it is the same
+	for every request.
+	"""
+	
+	u_session = get_user_session()
+	dk = create_session_key()
+	u_session._data['dispatcher_key'] = dk
+	u_session.save()
+	
+	return dk
+
 @LuxFireWeb.post('/user/queue_finalise')
 @protected()
 def user_queue_finalise():
 	try:
-		dispatchers = DispatcherGroup()	# TODO: handle ClientException
-	except ClientException as err:
-		return {'error': '%s'%err}
-	
-	u_session = get_user_session()
-	db = LuxFireWeb._db
-	
-	# Find the queue item
-	q = db.query(Queue).filter(Queue.id==request.POST.get('q_id')).one()	#@UndefinedVariable
-	
-	# Check that the queue item is in the correct state and belongs to the correct
-	# user and the dispatcher is available.
-	if q.status=='NEW' and q.user_id == u_session.user.id and len(dispatchers) > 0:
-		for dispatcher_name, dispatcher in dispatchers.items():	#@UnusedVariable
-			break
-		dispatcher.finalise_queue(u_session.user.id, q.jobname)
+		dispatchers = DispatcherGroup()
 		
-	return {}
+		u_session = get_user_session()
+		db = LuxFireWeb._db
+		
+		# Find the queue item
+		q = db.query(Queue).filter(Queue.id==request.POST.get('q_id')).one()	#@UndefinedVariable
+		
+		# Check that the queue item is in the correct state and belongs to the correct
+		# user and the dispatcher is available.
+		if q.status=='NEW' and q.user_id == u_session.user.id and len(dispatchers) > 0:
+			for dispatcher_name, dispatcher in dispatchers.items():	#@UnusedVariable
+				break
+			dispatcher.finalise_queue(u_session.user.id, set_dispatcher_key(), q.jobname)
+		
+		return {}
+	except Exception as err:
+		return {'error': '%s'%err}
 
 @LuxFireWeb.post('/user/queue_dequeue')
 @protected()
 def user_queue_dequeue():
 	try:
 		dispatchers = DispatcherGroup()
-	except ClientException as err:
-		return {'error': '%s'%err}
-	
-	u_session = get_user_session()
-	db = LuxFireWeb._db
-	
-	# Find the queue item
-	q = db.query(Queue).filter(Queue.id==request.POST.get('q_id')).one()	#@UndefinedVariable
-	
-	# Check that the queue item is in the correct state and belongs to the correct
-	# user and the dispatcher is available.
-	if q.status=='READY' and q.user_id == u_session.user.id and len(dispatchers) > 0:
-		for dispatcher_name, dispatcher in dispatchers.items():	#@UnusedVariable
-			break
-		dispatcher.abort_queue(u_session.user.id, q.jobname)
 		
-	return {}
+		u_session = get_user_session()
+		db = LuxFireWeb._db
+		
+		# Find the queue item
+		q = db.query(Queue).filter(Queue.id==request.POST.get('q_id')).one()	#@UndefinedVariable
+		
+		# Check that the queue item is in the correct state and belongs to the correct
+		# user and the dispatcher is available.
+		if q.status=='READY' and q.user_id == u_session.user.id and len(dispatchers) > 0:
+			for dispatcher_name, dispatcher in dispatchers.items():	#@UnusedVariable
+				break
+			dispatcher.abort_queue(u_session.user.id, set_dispatcher_key(), q.jobname)
+			
+		return {}
+	except Exception as err:
+		return {'error': '%s'%err}
 
 @LuxFireWeb.post('/user/queue_new')
 @protected()
@@ -232,7 +257,7 @@ def user_queue_new():
 		if len(dispatchers) > 0:
 			for dispatcher_name, dispatcher in dispatchers.items():	#@UnusedVariable
 				break
-			dispatcher.add_queue(u_session.user.id, jobname, haltspp, halttime)
+			dispatcher.add_queue(u_session.user.id, set_dispatcher_key(), jobname, haltspp, halttime)
 		
 		return {}
 	except Exception as err:
@@ -252,7 +277,7 @@ def user_queue_upload():
 		if len(dispatchers) > 0:
 			for dispatcher_name, dispatcher in dispatchers.items():	#@UnusedVariable
 				break
-			if dispatcher.add_file(u_session.user.id, q.jobname, filename, filedata.read()):
+			if dispatcher.add_file(u_session.user.id, set_dispatcher_key(), q.jobname, filename, filedata.read()):
 				return {'success':True}
 		
 		raise Exception('Error sending file to Dispatcher')

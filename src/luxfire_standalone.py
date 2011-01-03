@@ -92,15 +92,8 @@ if __name__=='__main__':
 		LuxFireLog('Press CTRL-C to stop')
 		
 		if options.nameserver:
-			def start_ns():
-				try:
-					import socket
-					import Pyro
-					Pyro.naming.startNSloop(host=cfg.get('LuxFire', 'bind'), enableBroadcast=True)
-				except socket.error as err:
-					LuxFireLog('Error running nameserver: %s' % err)
-			
-			ns_proc = multiprocessing.Process(target=start_ns)
+			from LuxFire.Server import pyro_ns_serve
+			ns_proc = multiprocessing.Process(target=pyro_ns_serve)
 			ns_proc.start()
 			LF_Servers.append(ns_proc)
 		

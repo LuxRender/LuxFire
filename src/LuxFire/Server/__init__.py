@@ -39,7 +39,14 @@ import Pyro
 from LuxRender import LuxLog
 
 # LuxFire imports
-from .. import LuxFireConfig
+from .. import LuxFireConfig, LuxFireLog
+
+def pyro_ns_serve():
+	try:
+		import socket
+		Pyro.naming.startNSloop(host=LuxFireConfig.Instance().get('LuxFire', 'bind'), enableBroadcast=True)
+	except socket.error as err:
+		LuxFireLog('Error running nameserver: %s' % err)
 
 class ServerObject(object):
 	'''
