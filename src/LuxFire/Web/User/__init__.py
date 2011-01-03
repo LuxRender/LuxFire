@@ -41,9 +41,9 @@ from ...Dispatcher.Client import DispatcherGroup
 
 from .. import LuxFireWeb
 if sys.version >= '3.0':
-	from ..bottle.bottle3 import request, response, redirect
+	from ..bottle.bottle3 import request, response, redirect	#@UnresolvedImport
 else:
-	from ..bottle.bottle2 import request, response, redirect
+	from ..bottle.bottle2 import request, response, redirect	#@UnresolvedImport
 
 def user_redirect(url, message):
 	"""
@@ -55,20 +55,52 @@ def user_redirect(url, message):
 	else:
 		redirect(url)
 
+def find_dispatcher():
+	ds = DispatcherGroup()
+	for dn, d in ds.items(): #@UnusedVariable
+		return d
+
 #------------------------------------------------------------------------------ 
 # Per-user management
 #------------------------------------------------------------------------------ 
 COOKIE_EXPIRE_DAYS = 7
 
+# SESSION UTILS
+
 def get_user_session():
 	UserSession.delete_old_sessions()
 	try:
-		db = LuxFireWeb._db
 		sess_id = request.COOKIES.get('session_id', '') #@UndefinedVariable
-		user_session = db.query(UserSession).options(eagerload('user')).filter(UserSession.sess_id==sess_id).one()
+		user_session = LuxFireWeb._db.query(UserSession).options(eagerload('user')).filter(UserSession.sess_id==sess_id).one()
 		return user_session
 	except:
-		return None
+		raise ClientException('No active user session')
+
+def create_session_key():
+	return hashlib.md5( ('%s'%(time.time()*random.random())).encode() ).hexdigest()
+
+def set_dispatcher_key():
+	"""
+	This method will set a key in the current user session
+	so that method calls on the Dispatcher can verify that
+	the commands came from a logged in user, and not from
+	other network traffic pretending to be a user.
+	
+	I don't pretend that this is totally secure, but it is
+	probably a bit better than nothing at all.
+	
+	Note, that just sending the existing session_id like a
+	browser does is not secure at all, since it is the same
+	for every request.
+	"""
+	
+	u_session = get_user_session()
+	dk = create_session_key()
+	u_session.session_data['dispatcher_key'] = dk
+	LuxFireWeb._db.add(u_session)
+	LuxFireWeb._db.flush()
+	
+	return dk
 
 # Provides @User.protected() decorator for access control
 # roles[] is a list of roles the user must have to access this route.
@@ -76,10 +108,10 @@ def get_user_session():
 def protected(roles=['login']):
 	def decorator(func):
 		def wrapper(*a, **ka):
-			u_session = get_user_session()
 			try:
-				if not (u_session and 'logged_in' in u_session.session_data.keys() and u_session.session_data['logged_in'] == True):
-					raise Exception('Not logged in')
+				u_session = get_user_session()
+				if not ('logged_in' in u_session.session_data.keys() and u_session.session_data['logged_in'] == True):
+					raise ClientException('Not logged in')
 				
 				role_check = False
 				for u_role in u_session.user.roles:
@@ -100,18 +132,23 @@ def protected(roles=['login']):
 		return wrapper
 	return decorator
 
+def get_user_queue_item():
+	"""Get the queue item belonging to the logged in user
+	and with ID == GET['q_id']"""
+	u_session = get_user_session()
+	return LuxFireWeb._db.query(Queue).filter(Queue.user_id==u_session.user.id).filter(Queue.id==request.POST.get('q_id')).one()	#@UndefinedVariable
+
+# ROUTES
+
 @LuxFireWeb.get('/user/login')
 def user_login_form():
 	return LuxFireWeb._templater.get_template('user_login.html').render()
 
-
-def create_session_key():
-	return hashlib.md5( ('%s'%(time.time()*random.random())).encode() ).hexdigest()
-
 @LuxFireWeb.post('/user/login')
 def user_login_process():
-	u_session = get_user_session()
-	if not u_session:
+	try:
+		u_session = get_user_session()	#@UnusedVariable
+	except ClientException:
 		try:
 			email = request.forms.get('email') #@UndefinedVariable
 			password = request.forms.get('password') #@UndefinedVariable
@@ -138,12 +175,13 @@ def user_login_process():
 			)
 		except:
 			pass
-	redirect('/')
+	finally:
+		redirect('/')
 
 @LuxFireWeb.route('/user/logout')
 def user_logout():
-	u_session = get_user_session()
-	if u_session:
+	try:
+		u_session = get_user_session()
 		db = LuxFireWeb._db
 		db.delete(u_session)
 		response.set_cookie(
@@ -152,65 +190,40 @@ def user_logout():
 			path='/',
 			expires=-1
 		)
-	redirect('/')
-
+	except ClientException: pass
+	finally:
+		redirect('/')
 
 @LuxFireWeb.route('/user/jobs')
 @protected()
 def user_jobs():
-	u_session = get_user_session()
-	uq = u_session.user.queue
-	ur = u_session.user.results
-	return LuxFireWeb._templater.get_template('user_jobs.html').render(
-		user_queue=uq,
-		user_queue_length=len(uq),
-		user_results=ur,
-		user_results_length=len(ur)
-	)
-
-def set_dispatcher_key():
-	"""
-	This method will set a key in the current user session
-	so that method calls on the Dispatcher can verify that
-	the commands came from a logged in user, and not from
-	other network traffic pretending to be a user.
-	
-	I don't pretend that this is totally secure, but it is
-	probably a bit better than nothing at all.
-	
-	Note, that just sending the existing session_id like a
-	browser does is not secure at all, since it is the same
-	for every request.
-	"""
-	
-	u_session = get_user_session()
-	dk = create_session_key()
-	u_session.session_data['dispatcher_key'] = dk
-	LuxFireWeb._db.add(u_session)
-	LuxFireWeb._db.flush()
-	
-	return dk
+	try:
+		u_session = get_user_session()
+		uq = u_session.user.queue
+		ur = u_session.user.results
+		return LuxFireWeb._templater.get_template('user_jobs.html').render(
+			user_queue=uq,
+			user_queue_length=len(uq),
+			user_results=ur,
+			user_results_length=len(ur)
+		)
+	except ClientException as err:
+		return '%s' % err
 
 @LuxFireWeb.post('/user/queue_finalise')
 @protected()
 def user_queue_finalise():
 	try:
-		dispatchers = DispatcherGroup()
-		
-		u_session = get_user_session()
-		db = LuxFireWeb._db
+		dispatcher = find_dispatcher()
 		
 		# Find the queue item
-		q = db.query(Queue).filter(Queue.id==request.POST.get('q_id')).one()	#@UndefinedVariable
+		q = get_user_queue_item()
 		
-		# Check that the queue item is in the correct state and belongs to the correct
-		# user and the dispatcher is available.
-		if q.status=='NEW' and q.user_id == u_session.user.id and len(dispatchers) > 0:
-			for dispatcher_name, dispatcher in dispatchers.items():	#@UnusedVariable
-				break
-			dispatcher.finalise_queue(u_session.user.id, set_dispatcher_key(), q.jobname)
+		# Check that the queue item is in the correct state.
+		if q.status=='NEW':
+			dispatcher.finalise_queue(q.user_id, set_dispatcher_key(), q.jobname)
 		
-		return {}
+		return {'success':True}
 	except Exception as err:
 		return {'error': '%s'%err}
 
@@ -218,22 +231,16 @@ def user_queue_finalise():
 @protected()
 def user_queue_dequeue():
 	try:
-		dispatchers = DispatcherGroup()
-		
-		u_session = get_user_session()
-		db = LuxFireWeb._db
+		dispatcher = find_dispatcher()
 		
 		# Find the queue item
-		q = db.query(Queue).filter(Queue.id==request.POST.get('q_id')).one()	#@UndefinedVariable
+		q = get_user_queue_item()
 		
-		# Check that the queue item is in the correct state and belongs to the correct
-		# user and the dispatcher is available.
-		if q.status=='READY' and q.user_id == u_session.user.id and len(dispatchers) > 0:
-			for dispatcher_name, dispatcher in dispatchers.items():	#@UnusedVariable
-				break
-			dispatcher.abort_queue(u_session.user.id, set_dispatcher_key(), q.jobname)
+		# Check that the queue item is in the correct state.
+		if q.status=='READY':
+			dispatcher.abort_queue(q.user_id, set_dispatcher_key(), q.jobname)
 			
-		return {}
+		return {'success':True}
 	except Exception as err:
 		return {'error': '%s'%err}
 
@@ -241,7 +248,7 @@ def user_queue_dequeue():
 @protected()
 def user_queue_new():
 	try:
-		dispatchers = DispatcherGroup()
+		dispatcher = find_dispatcher()
 		u_session = get_user_session()
 		
 		jobname = request.POST.get('jobname')	#@UndefinedVariable
@@ -254,12 +261,9 @@ def user_queue_new():
 		if haltspp < 1 and halttime < 1:
 			raise Exception('You must specify at least one halt condition.')
 		
-		if len(dispatchers) > 0:
-			for dispatcher_name, dispatcher in dispatchers.items():	#@UnusedVariable
-				break
-			dispatcher.add_queue(u_session.user.id, set_dispatcher_key(), jobname, haltspp, halttime)
+		dispatcher.add_queue(u_session.user.id, set_dispatcher_key(), jobname, haltspp, halttime)
 		
-		return {}
+		return {'success':True}
 	except Exception as err:
 		return {'error': '%s'%err}
 
@@ -267,22 +271,33 @@ def user_queue_new():
 @protected()
 def user_queue_upload():
 	try:
-		u_session = get_user_session()
-		db = LuxFireWeb._db
-		q = db.query(Queue).filter(Queue.id==request.GET.get('q_id')).one()	#@UndefinedVariable
+		dispatcher = find_dispatcher()
+		
+		q = get_user_queue_item()
 		filename = request.GET.get('qqfile')	#@UndefinedVariable
 		filedata = request.body
 		
-		dispatchers = DispatcherGroup()
-		if len(dispatchers) > 0:
-			for dispatcher_name, dispatcher in dispatchers.items():	#@UnusedVariable
-				break
-			if dispatcher.add_file(u_session.user.id, set_dispatcher_key(), q.jobname, filename, filedata.read()):
-				return {'success':True}
+		if dispatcher.add_file(q.user_id, set_dispatcher_key(), q.jobname, filename, filedata.read()):
+			return {'success':True}
 		
 		raise Exception('Error sending file to Dispatcher')
 	except Exception as err:
 		return {'success':False, 'error':'%s'%err}
+
+@LuxFireWeb.post('/user/queue_reset')
+@protected()
+def user_queue_reset():
+	try:
+		dispatcher = find_dispatcher()
+		
+		q = get_user_queue_item()
+		
+		dispatcher.reset_queue(q.user_id, set_dispatcher_key(), q.jobname)
+		
+		return {'success':True}
+	except Exception as err:
+		return {'success':False, 'error':'%s'%err}
+
 #------------------------------------------------------------------------------ 
 # All users management
 #------------------------------------------------------------------------------ 

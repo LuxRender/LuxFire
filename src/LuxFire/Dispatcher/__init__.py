@@ -381,7 +381,7 @@ class Dispatcher(ServerObject):
 		self._verify_user_key(user_id, d_key)
 		
 		with DatabaseSession() as db:
-			existing = db.query(Queue).options(eagerload('user')).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).count()
+			existing = db.query(Queue).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).count()
 		if existing > 0:
 			raise ClientException('Job with that name already exists')
 		
@@ -402,7 +402,7 @@ class Dispatcher(ServerObject):
 		
 		# TODO: check correct q.state and if any files have been uploaded !
 		with DatabaseSession() as db:
-			q = db.query(Queue).options(eagerload('user')).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).one()
+			q = db.query(Queue).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).one()
 			# If not exactly one q found, exception will be passed back to user
 			q.status = 'PENDING'
 			q.status_data = ''
@@ -414,9 +414,21 @@ class Dispatcher(ServerObject):
 		self._verify_user_key(user_id, d_key)
 		
 		with DatabaseSession() as db:
-			q = db.query(Queue).options(eagerload('user')).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).one()
+			q = db.query(Queue).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).one()
 			# If not exactly one q found, exception will be passed back to user
 			if q.status == 'READY':
+				q.status = 'ERROR'
+				q.status_data = 'Aborted'
+		return True
+	
+	def reset_queue(self, user_id, d_key, jobname):
+		"""Reset an item back to NEW status from ERROR for another go"""
+		self._verify_user_key(user_id, d_key)
+		
+		with DatabaseSession() as db:
+			q = db.query(Queue).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).one()
+			# If not exactly one q found, exception will be passed back to user
+			if q.status == 'ERROR':
 				q.status = 'NEW'
 				q.status_data = ''
 		return True
@@ -426,7 +438,7 @@ class Dispatcher(ServerObject):
 		self._verify_user_key(user_id, d_key)
 		
 		with DatabaseSession() as db:
-			q = db.query(Queue).options(eagerload('user')).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).one()
+			q = db.query(Queue).filter(Queue.user_id==user_id).filter(Queue.jobname==jobname).one()
 			if q.status != 'NEW':
 				raise Exception('Wrong queue status for file upload!')
 			
