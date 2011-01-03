@@ -28,7 +28,7 @@
 Web.Server runs the http server to run the web interface to LuxFire
 """
 
-def web_serve():
+def web_serve(parse_cli=False):
 	from .. import LuxFireConfig
 	from . import LuxFireWeb, WebLog
 	import sys, os
@@ -45,21 +45,22 @@ def web_serve():
 		'port': cfg.getint('Web', 'port'),
 	}
 	
-	import optparse
-	parser = optparse.OptionParser(
-		prog='LuxFire.Web.Server',
-		description='Run the LuxFire.Web.Server for LuxFire system administration'
-	)
-	parser.add_option(
-		'-v',
-		'--verbose',
-		action='store_true',
-		dest='verbose',
-		default=False,
-		help='Show more output'
-	)
-	(options, args) = parser.parse_args()
-	LuxFireWebRunArgs['quiet'] = not options.verbose
+	if parse_cli:
+		import optparse
+		parser = optparse.OptionParser(
+			prog='LuxFire.Web.Server',
+			description='Run the LuxFire.Web.Server for LuxFire system administration'
+		)
+		parser.add_option(
+			'-v',
+			'--verbose',
+			action='store_true',
+			dest='verbose',
+			default=False,
+			help='Show more output'
+		)
+		(options, args) = parser.parse_args()
+		LuxFireWebRunArgs['quiet'] = not options.verbose
 	
 	# This adds bottle to the sys path so that default error pages work
 	sys.path.insert(0, os.path.join(LuxFireWeb._data_root, os.path.pardir))
@@ -68,4 +69,4 @@ def web_serve():
 	run(**LuxFireWebRunArgs)
 
 if __name__ == '__main__':
-	web_serve()
+	web_serve(parse_cli=True)

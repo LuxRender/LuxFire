@@ -85,9 +85,11 @@ if __name__=='__main__':
 		cfg = LuxFireConfig.Instance()
 		
 		# Using multiprocess.Process prevents DB deadlocking when using SQLite
-		# and running multiple servers.
+		# and running multiple servers, also makes better use of multicore CPUs.
 		import multiprocessing, os, threading, signal
 		LF_Servers = []
+		
+		LuxFireLog('Press CTRL-C to stop')
 		
 		if options.nameserver:
 			def start_ns():
@@ -101,8 +103,6 @@ if __name__=='__main__':
 			ns_proc = multiprocessing.Process(target=start_ns)
 			ns_proc.start()
 			LF_Servers.append(ns_proc)
-		
-		LuxFireLog('Press CTRL-C to stop')
 		
 		if options.renderer:
 			from LuxFire.Renderer.Server import renderer_serve
@@ -134,7 +134,10 @@ if __name__=='__main__':
 		finally:
 			for server_process in LF_Servers:
 				if server_process.is_alive():
-					os.kill(server_process.pid, signal.SIGINT)
+					if os.name != 'nt':
+						# Windows doesn't have kill(), but seems to
+						# terminate the children forcefully instead :(
+						os.kill(server_process.pid, signal.SIGINT)
 					server_process.join()
 		
 	except ImportError as err:
