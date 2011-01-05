@@ -21,7 +21,7 @@ path_dirs = []
 this_dir = os.path.dirname(__file__)
 path_dirs.append(this_dir)
 lf_src_dir = os.path.join( this_dir, os.path.pardir, os.path.pardir )
-os.chdir( ls_src_dir )
+os.chdir( lf_src_dir )
 path_dirs.append(lf_src_dir)
 for p in path_dirs:
 	if p not in sys.path:
