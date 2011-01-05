@@ -27,4 +27,4 @@ for p in path_dirs:
 	if p not in sys.path:
 		sys.path.append(p)
 
-from . import LuxFireWeb as application
+from LuxFire.Web import LuxFireWeb as application
